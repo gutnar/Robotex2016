@@ -138,8 +138,6 @@ void Detector::calibrate(cv::VideoCapture cap) {
 
         cv::cvtColor(image, image, cv::COLOR_BGR2HSV);
         cv::inRange(image, cv::Scalar(range[0][0], range[1][0], 0), cv::Scalar(range[0][1], range[1][1], 255), image);
-        //cv::erode(image, image, cv::Mat());
-        //cv::dilate(image, image, cv::Mat());
 
         cv::imshow("Tulemused", image);
 
