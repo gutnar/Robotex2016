@@ -4,6 +4,9 @@
 
 #include "Detector.h"
 
+using namespace std;
+using namespace cv;
+
 void Detector::onMouse(int event, int x, int y) {
     static bool drawing = false;
 
@@ -121,27 +124,57 @@ void Detector::calibrate(cv::VideoCapture cap) {
 
         int deviation = (int) sqrt(deviationSquareSum / (pixels - 1));
 
-        range[i][0] = mean - deviation;
-        range[i][1] = mean + deviation;
+        range[i][0] = mean - deviation * 1.5;
+        range[i][1] = mean + deviation * 1.5;
     }
 
     std::cout << "H " << range[0][0] << " - " << range[0][1] << std::endl;
     std::cout << "S " << range[1][0] << " - " << range[1][1] << std::endl;
     std::cout << "V " << range[2][0] << " - " << range[2][1] << std::endl;
 
+    // Close calibration window
+    destroyWindow("Märgista värviga piirkond");
+
     // Show results
-    cv::Mat image;
-    cv::namedWindow("Tulemused");
+    Mat image;
+    Mat workedImage;
+
+    namedWindow("Tulemused");
 
     while (1) {
         cap >> image;
 
-        cv::cvtColor(image, image, cv::COLOR_BGR2HSV);
-        cv::inRange(image, cv::Scalar(range[0][0], range[1][0], 0), cv::Scalar(range[0][1], range[1][1], 255), image);
+        cv::cvtColor(image, workedImage, cv::COLOR_BGR2HSV);
+        cv::inRange(workedImage, cv::Scalar(range[0][0], range[1][0], 0), cv::Scalar(range[0][1], range[1][1], 255), workedImage);
 
-        cv::imshow("Tulemused", image);
+        // Smooth it, otherwise a lot of false circles may be detected
+        cv::GaussianBlur(workedImage, workedImage, cv::Size(25, 25), 2, 2);
 
-        if (cv::waitKey(30) > 0) {
+        // Erode
+        cv::erode(workedImage, workedImage, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(10, 10), cv::Point(0, 0)));
+
+        // Dilate
+        //cv::dilate(image, image, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(10, 10), cv::Point(0, 0)));
+
+        /// Find contours
+        std::vector<std::vector<cv::Point> > contours;
+        std::vector<cv::Vec4i> hierarchy;
+
+        findContours(workedImage, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+
+        /// Draw contours
+        //cv::Mat drawing = cv::Mat::zeros(image.size(), CV_8UC3);
+
+        for (int i = 0; i < contours.size(); i++)
+        {
+            Scalar color = Scalar(255, 0, 0);
+            drawContours(image, contours, i, color, 2, 8, hierarchy, 0, Point());
+        }
+
+        // Show detected areas
+        imshow("Tulemused", image);
+
+        if (waitKey(30) > 0) {
             break;
         }
     }
