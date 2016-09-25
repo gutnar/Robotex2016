@@ -5,7 +5,7 @@ using namespace cv;
 
 int main() {
     VideoCapture cap;
-    cap.open(1);
+    cap.open(0);
 
     Detector detector;
     detector.calibrate(cap);
