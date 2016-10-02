@@ -1,21 +1,25 @@
 //
-// Created by jk on 20.09.16.
+// Created by Gutnar Leede on 01/10/16.
 //
 
 #ifndef ROBOTEX2016_DETECTOR_H
 #define ROBOTEX2016_DETECTOR_H
 
-#include <vector>
 #include <opencv2/opencv.hpp>
+#include <simpleini.h>
+
+using namespace std;
+using namespace cv;
 
 class Detector {
 public:
-    void calibrate(cv::VideoCapture cap);
-    void onMouse(int event, int x, int y);
-    static void mouseEventHandler(int event, int x, int y, int, void* userdata);
+    // Constructor declaration
+    Detector(CSimpleIniA *configurationIni, CSimpleIniA *colorsIni);
+    void filterColor(Mat srcImage, Mat dstImage, string color);
+    void findBalls(Mat srcImage);
 private:
-    cv::Mat calibrationSrc;
-    std::vector< std::vector<cv::Point> > polygons;
+    CSimpleIniA *mConfigurationIni;
+    CSimpleIniA *mColorsIni;
 };
 
 
