@@ -5,10 +5,10 @@
 #ifndef ROBOTEX2016_CALIBRATOR_H
 #define ROBOTEX2016_CALIBRATOR_H
 
-#include <fstream>
+#include <string>
 #include <vector>
 #include <opencv2/opencv.hpp>
-#include <simpleini.h>
+#include <SimpleIni.h>
 
 using namespace std;
 using namespace cv;

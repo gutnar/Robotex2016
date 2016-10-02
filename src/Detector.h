@@ -6,17 +6,24 @@
 #define ROBOTEX2016_DETECTOR_H
 
 #include <opencv2/opencv.hpp>
-#include <simpleini.h>
+#include <SimpleIni.h>
 
 using namespace std;
 using namespace cv;
 
 class Detector {
 public:
+    // Ball structure
+    struct Ball {
+        Point center;
+        int radius;
+    };
+
     // Constructor declaration
-    Detector(CSimpleIniA *configurationIni, CSimpleIniA *colorsIni);
-    void filterColor(Mat srcImage, Mat dstImage, string color);
-    void findBalls(Mat srcImage);
+    Detector(CSimpleIniA &configurationIni, CSimpleIniA &colorsIni);
+    void filterColor(Mat &srcImage, Mat &dstImage, string color);
+    vector<vector<Point> > findGoal(Mat &srcImage, string color);
+    vector<Ball> findBalls(Mat &srcImage);
 private:
     CSimpleIniA *mConfigurationIni;
     CSimpleIniA *mColorsIni;

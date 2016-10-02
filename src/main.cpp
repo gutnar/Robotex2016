@@ -1,5 +1,5 @@
 #include <opencv2/highgui.hpp>
-#include <simpleini.h>
+#include <SimpleIni.h>
 
 #include "Calibrator.h"
 #include "Detector.h"
@@ -34,21 +34,53 @@ int main() {
 
     // Detection detector(configuation file, colors file)
     //Call for constructor
-    Detector detector(&configuration, &colors);
+    Detector detector(configuration, colors);
 
-    // IMAGE MANIPULATION
-    Mat image, workedImage;
-    cap >> image;
+    namedWindow("BALLS");
 
-    // Convert BGR to HSV
-    cvtColor(image, workedImage, COLOR_BGR2HSV);
+    while (true) {
+        /// IMAGE MANIPULATION
+        Mat image, workedImage;
+        cap >> image;
 
-    // Smooth the image
-    GaussianBlur(workedImage, workedImage, Size(25, 25), 2, 2);
+        // Convert BGR to HSV
+        cvtColor(image, workedImage, COLOR_BGR2HSV);
 
-    //Call for filterColor
-    //detector.filterColor(workedImage, "ORANGE");
-    detector.findBalls(workedImage);
+        // Smooth the image
+        GaussianBlur(workedImage, workedImage, Size(25, 25), 2, 2);
+
+        /// FIND BALLS
+        vector<Detector::Ball> balls = detector.findBalls(workedImage);
+
+        /// FIND GOALS
+        vector<vector<Point> > contours = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
+
+        /// DRAW
+        // Draw circles check
+        Scalar red = Scalar(0, 0, 255);
+        Scalar blue = Scalar(255, 0, 0);
+
+        cout << balls.size() << endl;
+
+        for (int i = 0; i < balls.size(); ++i) {
+            circle(image, balls[i].center, 2, red);
+            circle(image, balls[i].center, balls[i].radius, red, 3);
+            //circle(image, balls[i].center, sqrt(maxRR), blue, 3);
+            //circle(srcImage,  center, 2, red);
+            //circle(srcImage,  center, 2, red);
+        }
+
+        for (int i = 0; i < contours.size(); ++i) {
+            drawContours(image, contours, i, blue);
+        }
+
+        imshow("BALLS", image);
+
+        // Close when pressing space or esc
+        if (waitKey(30) > 0) {
+            break;
+        }
+    }
 
     return 0;
 }

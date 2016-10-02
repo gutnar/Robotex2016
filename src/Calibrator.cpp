@@ -7,6 +7,14 @@
 using namespace std;
 using namespace cv;
 
+std::string itos(int n)
+{
+    const int max_size = std::numeric_limits<int>::digits10 + 1 /*sign*/ + 1 /*0-terminator*/;
+    char buffer[max_size] = {0};
+    sprintf(buffer, "%d", n);
+    return std::string(buffer);
+}
+
 void Calibrator::onMouse(int event, int x, int y)
 {
     static bool drawing = false;
@@ -269,39 +277,10 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
     destroyWindow(windowName);
 
     // SAVE
-
-    ini->SetValue(color.c_str(), "H_MIN", to_string(range[0][0]).c_str());
-    ini->SetValue(color.c_str(), "H_MAX", to_string(range[0][1]).c_str());
-    ini->SetValue(color.c_str(), "S_MIN", to_string(range[1][0]).c_str());
-    ini->SetValue(color.c_str(), "S_MAX", to_string(range[1][1]).c_str());
-    ini->SetValue(color.c_str(), "V_MIN", to_string(range[2][0]).c_str());
-    ini->SetValue(color.c_str(), "V_MAX", to_string(range[2][1]).c_str());
-
-
-    /*
-    string save;
-
-    cout << "Save (y/n)? ";
-    cin >> save;
-
-    if (save == "y") {
-        string place, color;
-
-        cout << "Place: ";
-        cin >> place;
-        cout << "Color (G/W/R/B/Y): ";
-        cin >> color;
-
-        ofstream file;
-
-        file.open ("calibration.txt");
-        file << "PLACE " << place << "\n";
-        file << "COLOR " << color << "\n";
-        file << "H " << range[0][0] << " " << range[0][1] << "\n";
-        file << "S " << range[1][0] << "-" << range[1][1] << "\n";
-        file << "V " << range[2][0] << "-" << range[2][1] << "\n";
-
-        file.close();
-    }
-     */
+    ini->SetValue(color.c_str(), "H_MIN", itos(range[0][0]).c_str());
+    ini->SetValue(color.c_str(), "H_MAX", itos(range[0][1]).c_str());
+    ini->SetValue(color.c_str(), "S_MIN", itos(range[1][0]).c_str());
+    ini->SetValue(color.c_str(), "S_MAX", itos(range[1][1]).c_str());
+    ini->SetValue(color.c_str(), "V_MIN", itos(range[2][0]).c_str());
+    ini->SetValue(color.c_str(), "V_MAX", itos(range[2][1]).c_str());
 }
