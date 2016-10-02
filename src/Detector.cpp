@@ -66,27 +66,33 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         // Sum of the squares
         int sumRR = 0;
         int maxRR = 0;
+        int Q = 0;
 
         for (int j = 0; j < contourSize ; ++j) {
             int RR = pow(ball.center.x - contours[i][j].x, 2) + pow(ball.center.y - contours[i][j].y, 2);
             sumR += sqrt(RR);
             sumRR += RR;
 
+            Q += abs(ball.center.x - contours[i][j].x) + abs(ball.center.y - contours[i][j].y);
+
             if (RR > maxRR) {
                 maxRR = RR;
             }
         }
+
         // Mean
         ball.radius = sumR/contourSize;
         int deviation = sqrt(sumRR/contourSize  - pow(ball.radius, 2));
 
-        if (ball.radius < 2) {
+        if (ball.radius < 10) {
             continue;
         }
 
         if ((float) deviation/ball.radius > 0.4) {
             continue;
         }
+
+        ball.radius = Q/contourSize;
 
         balls.push_back(ball);
     }
