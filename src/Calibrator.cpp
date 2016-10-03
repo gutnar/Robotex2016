@@ -141,6 +141,11 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
     Mat hsvSrc;
     cvtColor(calibrationSrc, hsvSrc, COLOR_BGR2HSV);
 
+    // Smooth the image
+    //  GaussianBlur(calibrationSrc, calibrationSrc, Size(25, 25), 2, 2);
+    //GaussianBlur(hsvSrc, hsvSrc, Size(25, 25), 2, 2);
+    imshow(windowName, calibrationSrc);
+
     // Select areas
     setMouseCallback(windowName, mouseEventHandler, this);
 
@@ -218,8 +223,8 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
         int deviation = (int) sqrt(sqSum / pixels - mean * mean);
 
         // Set min and max HSV values to filter on image
-        range[i][0] = mean - deviation;
-        range[i][1] = mean + deviation;
+        range[i][0] = mean - deviation*2;
+        range[i][1] = mean + deviation*2;
     }
 
     cout << "H " << range[0][0] << " - " << range[0][1] << endl;
@@ -236,15 +241,17 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
 
         // Convert BGR to HSV
         cvtColor(image, workedImage, COLOR_BGR2HSV);
+
+        // Filter
         inRange(workedImage, Scalar(range[0][0], range[1][0], 0), Scalar(range[0][1], range[1][1], 255),
                 workedImage);
-
-        // Smooth it, otherwise a lot of false circles may be detected
-        GaussianBlur(workedImage, workedImage, Size(25, 25), 2, 2);
 
         // Erode
         erode(workedImage, workedImage,
               getStructuringElement(MORPH_ELLIPSE, Size(10, 10), Point(0, 0)));
+
+        // Smooth it, otherwise a lot of false circles may be detected
+        GaussianBlur(workedImage, workedImage, Size(25, 25), 2, 2);
 
         // Dilate
         //cv::dilate(image, image, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(10, 10), cv::Point(0, 0)));

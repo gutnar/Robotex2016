@@ -28,6 +28,9 @@ void Detector::filterColor(Mat &srcImage, Mat &dstImage, string color) {
 
     // Erode
     erode(dstImage, dstImage, getStructuringElement(MORPH_ELLIPSE, Size(10, 10), Point(0, 0)));
+
+    // Smooth the image
+    GaussianBlur(dstImage, dstImage, Size(25, 25), 2, 2);
 }
 
 vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
@@ -61,7 +64,7 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
 
         ball.center = Point(sumX/contourSize, sumY/contourSize);
 
-        ///FIND THE BALLS' RADII
+        /// FIND THE BALLS' RADII
         int sumR = 0;
         // Sum of the squares
         int sumRR = 0;
@@ -84,26 +87,58 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         ball.radius = sumR/contourSize;
         int deviation = sqrt(sumRR/contourSize  - pow(ball.radius, 2));
 
-        if (ball.radius < 10) {
+        if (ball.radius < 5 || ball.radius > 50) {
             continue;
         }
 
-        if ((float) deviation/ball.radius > 0.4) {
+        if ((float) deviation/ball.radius > 0.5) {
             continue;
         }
 
-        ball.radius = Q/contourSize;
+        //ball.radius = Q/contourSize;
 
         balls.push_back(ball);
     }
 
-    return balls;
+    /// FIND CIRCLES THAT ARE NOT CONTAINED BY OTHER CIRCLES
+    vector<Ball> singleBalls;
+
+    for (int i = 0; i < balls.size(); ++i) {
+        bool single = true;
+
+        for (int j = 0; j < balls.size(); ++j) {
+            if (i == j) {
+                continue;
+            }
+
+            if (balls[i].radius > balls[j].radius) {
+                continue;
+            }
+
+            int d = sqrt(pow(balls[i].center.x - balls[j].center.x, 2) + pow(balls[i].center.y - balls[j].center.y, 2));
+
+            if (d < max(balls[i].radius, balls[j].radius)) {
+                single = false;
+                break;
+            }
+        }
+
+        if (single) {
+            singleBalls.push_back(balls[i]);
+        }
+    }
+
+    return singleBalls;
 }
 
 /// GOAL
 vector<vector<Point> > Detector::findGoal(Mat &srcImage, string color) {
     Mat filteredImage;
     filterColor(srcImage, filteredImage, color);
+
+    // Display
+    namedWindow("filter");
+    imshow("filter", filteredImage);
 
     /// FIND CONTOURS
     vector<vector<Point> > contours;

@@ -46,9 +46,6 @@ int main() {
         // Convert BGR to HSV
         cvtColor(image, workedImage, COLOR_BGR2HSV);
 
-        // Smooth the image
-        GaussianBlur(workedImage, workedImage, Size(25, 25), 2, 2);
-
         /// FIND BALLS
         vector<Detector::Ball> balls = detector.findBalls(workedImage);
 
@@ -71,7 +68,7 @@ int main() {
         }
 
         for (int i = 0; i < contours.size(); ++i) {
-            drawContours(image, contours, i, blue);
+            drawContours(image, contours, i, blue, 3);
         }
 
         imshow("BALLS", image);
