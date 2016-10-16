@@ -50,29 +50,6 @@ void pidTick() {
   for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
     motors[i].pidTick();
   }
-
-  //led1.setRed(!led1.getRed());
-
-/*
-  pidTickerCount++;
-
-  if (pidTickerCount == 120) {
-  //move behind
-  setSpeedToMotors(-15,15,0);
-} else if (pidTickerCount == 120*3) {
-//move front
-setSpeedToMotors(15,-15,0);
-} else if (pidTickerCount == 120*5) {
-//circle counter-clockwise
-setSpeedToMotors(-15,-15,-15);
-} else if (pidTickerCount == 120*7) {
-//circle clockwise
-setSpeedToMotors(5,5,5);
-} else if (pidTickerCount == 120*9) {
-//circle right
-setSpeedToMotors(0,0,0);
-}
-*/
 }
 
 void toggleLed() {
@@ -91,8 +68,8 @@ int main() {
       buf[serialCount] = serial.getc();
 
       if (buf[serialCount] == '\n') {
+        serial.printf(buf);
         parseCommad(buf);
-        //serial.printf(buf);
         serialCount = 0;
         memset(buf, 0, 32);
       } else {

@@ -8,6 +8,8 @@
 #include <opencv2/opencv.hpp>
 #include <SimpleIni.h>
 
+#include "common.h"
+
 using namespace std;
 using namespace cv;
 

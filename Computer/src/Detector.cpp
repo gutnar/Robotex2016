@@ -44,6 +44,10 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
 
+    Scalar red = Scalar(0, 0, 255);
+    Scalar blue = Scalar(255, 0, 0);
+    Scalar white = Scalar(255, 255, 255);
+
     // Find contours from filtered image
     findContours(filteredImage, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
 
@@ -56,13 +60,27 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         int sumX = 0;
         int sumY = 0;
         int contourSize = (int) contours[i].size();
+        int minX = IMAGE_WIDTH, maxX = 0;
+        int maxY = 0;
 
         for (int j = 0; j < contourSize ; ++j) {
             sumX += contours[i][j].x;
             sumY += contours[i][j].y;
+
+            minX = min(minX, contours[i][j].x);
+            maxX = max(maxX, contours[i][j].x);
+            maxY = max(maxY, contours[i][j].y);
         }
 
         ball.center = Point(sumX/contourSize, sumY/contourSize);
+
+        drawContours(srcImage, contours, i, blue, 1);
+        putText(srcImage, itos(IMAGE_HEIGHT - maxY), Point(ball.center.x + 50, ball.center.y), 1, 1, white);
+
+        /**
+         * s / y^2 = A
+         * y = sqrt(s/A)
+         */
 
         /// FIND THE BALLS' RADII
         int sumR = 0;
@@ -87,6 +105,7 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         ball.radius = sumR/contourSize;
         int deviation = sqrt(sumRR/contourSize  - pow(ball.radius, 2));
 
+        /*
         if (ball.radius < 5 || ball.radius > 50) {
             continue;
         }
@@ -94,11 +113,15 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         if ((float) deviation/ball.radius > 0.5) {
             continue;
         }
+         */
 
         //ball.radius = Q/contourSize;
 
         balls.push_back(ball);
     }
+
+    namedWindow("test");
+    imshow("test", srcImage);
 
     /// FIND CIRCLES THAT ARE NOT CONTAINED BY OTHER CIRCLES
     vector<Ball> singleBalls;

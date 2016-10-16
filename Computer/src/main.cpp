@@ -1,6 +1,5 @@
 #include <opencv2/highgui.hpp>
 #include <SimpleIni.h>
-#include <libserialport.h>
 
 #include "Communicator.h"
 #include "Calibrator.h"
@@ -18,10 +17,17 @@ int main() {
     configuration.LoadFile("configuration.ini");
 
     /// CREATE SERIAL COMMUNICATOR
+    Communicator communicator;
+
     int vendorId = atoi(configuration.GetValue("settings", "VENDOR_ID", "0"));
     int productId = atoi(configuration.GetValue("settings", "PRODUCT_ID", "0"));
 
-    Communicator communicator(vendorId, productId);
+    try {
+        communicator.connect(vendorId, productId);
+    } catch (int exception) {
+        cout << "Could not create serial connection!" << endl;
+        return 0;
+    }
 
     /// START VIDEO CAPTURE
     VideoCapture cap;
@@ -47,7 +53,7 @@ int main() {
     /// SET UP DETECTOR
     // Detection detector(configuration file, colors file)
     Detector detector(configuration, colors);
-    namedWindow("BALLS");
+    //namedWindow("BALLS");
 
     /// SET UP AI
     AI ai;
@@ -75,10 +81,11 @@ int main() {
         /// ASK AI WHAT TO DO
         string command = ai.getCommand();
 
-        cout << command << endl;
+        //cout << command << endl;
 
         if (command.length()) {
-            communicator.sendCommand(command);
+            communicator.sendCommand("red");
+           // communicator.sendCommand(command);
         }
 
         /// DRAW FOR TESTING
@@ -86,8 +93,8 @@ int main() {
         Scalar blue = Scalar(255, 0, 0);
 
         for (int i = 0; i < balls.size(); ++i) {
-            circle(image, balls[i].center, 2, red);
-            circle(image, balls[i].center, balls[i].radius, red, 3);
+            //circle(image, balls[i].center, 2, red);
+            //circle(image, balls[i].center, balls[i].radius, red, 3);
             //circle(image, balls[i].center, sqrt(maxRR), blue, 3);
             //circle(srcImage,  center, 2, red);
             //circle(srcImage,  center, 2, red);
@@ -99,13 +106,15 @@ int main() {
         }
          */
 
-        imshow("BALLS", image);
+        //imshow("BALLS", image);
 
         // Close when pressing space or esc
         if (waitKey(30) > 0) {
             break;
         }
     }
+
+    communicator.sendCommand("sd0:0:0:0");
 
     return 0;
 }

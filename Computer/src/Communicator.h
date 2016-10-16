@@ -12,8 +12,8 @@ using namespace std;
 
 class Communicator {
 public:
-    Communicator(int vendorId, int productId);
     ~Communicator();
+    void connect(int vendorId, int productId);
     void sendCommand(string command);
 private:
     struct sp_port ** mPorts;

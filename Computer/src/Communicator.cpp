@@ -5,7 +5,7 @@
 #include <iostream>
 #include "Communicator.h"
 
-Communicator::Communicator(int vendorId, int productId) {
+void Communicator::connect(int vendorId, int productId) {
     // Get list of all connected USB devices
     sp_list_ports(&mPorts);
 
@@ -21,9 +21,11 @@ Communicator::Communicator(int vendorId, int productId) {
             // Device found, open it for communication
             mPort = mPorts[i];
             sp_open(mPort, SP_MODE_WRITE);
-            break;
+            return;
         }
     }
+
+    throw 1;
 }
 
 Communicator::~Communicator() {

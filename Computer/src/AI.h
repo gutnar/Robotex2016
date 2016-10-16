@@ -7,10 +7,7 @@
 
 
 #include "Detector.h"
-
-#define IMAGE_WIDTH 640
-#define IMAGE_HALF_WIDTH 320
-//#define IMAGE_HEIGHT 480
+#include "common.h"
 
 class AI {
 public:

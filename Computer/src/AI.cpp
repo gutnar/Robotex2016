@@ -31,6 +31,10 @@ string AI::getCommand() {
         return "";
     }
 
+    if (closestBall->center.x > IMAGE_HALF_WIDTH - 20 && closestBall->center.x < IMAGE_HALF_WIDTH + 20 ) {
+        return "sd0:0:0:0";
+    }
+
     if (closestBall->center.x < IMAGE_HALF_WIDTH) {
         return "sd-10:-10:-10:0";
     }
@@ -38,6 +42,7 @@ string AI::getCommand() {
     if (closestBall->center.x > IMAGE_HALF_WIDTH) {
         return "sd10:10:10:0";
     }
+
 
     return "";
 }

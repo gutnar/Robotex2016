@@ -7,14 +7,6 @@
 using namespace std;
 using namespace cv;
 
-std::string itos(int n)
-{
-    const int max_size = std::numeric_limits<int>::digits10 + 1 /*sign*/ + 1 /*0-terminator*/;
-    char buffer[max_size] = {0};
-    sprintf(buffer, "%d", n);
-    return std::string(buffer);
-}
-
 void Calibrator::onMouse(int event, int x, int y)
 {
     static bool drawing = false;
