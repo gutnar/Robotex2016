@@ -1,22 +1,34 @@
 #include <opencv2/highgui.hpp>
 #include <SimpleIni.h>
+#include <libserialport.h>
 
+#include "Communicator.h"
 #include "Calibrator.h"
 #include "Detector.h"
+#include "AI.h"
 
 using namespace cv;
 using namespace std;
 
 int main() {
-    VideoCapture cap;
-    cap.open(0);
 
-    // Load configuration
+    /// LOAD CONFIGURATION
     CSimpleIniA configuration;
     configuration.SetUnicode();
     configuration.LoadFile("configuration.ini");
-    const string place = configuration.GetValue("settings", "PLACE", "");
 
+    /// CREATE SERIAL COMMUNICATOR
+    int vendorId = atoi(configuration.GetValue("settings", "VENDOR_ID", "0"));
+    int productId = atoi(configuration.GetValue("settings", "PRODUCT_ID", "0"));
+
+    Communicator communicator(vendorId, productId);
+
+    /// START VIDEO CAPTURE
+    VideoCapture cap;
+    cap.open(0);
+
+    /// CALIBRATION
+    const string place = configuration.GetValue("settings", "PLACE", "");
     cout << ("calibration/" + place + ".ini") << endl;
 
     // Load calibration
@@ -32,16 +44,21 @@ int main() {
         colors.SaveFile(("calibration/" + place + ".ini").c_str());
     }
 
-    // Detection detector(configuation file, colors file)
-    //Call for constructor
+    /// SET UP DETECTOR
+    // Detection detector(configuration file, colors file)
     Detector detector(configuration, colors);
-
     namedWindow("BALLS");
 
+    /// SET UP AI
+    AI ai;
+
+    /// MAIN LOOP
     while (true) {
         /// IMAGE MANIPULATION
         Mat image, workedImage;
         cap >> image;
+
+        //cout << image.cols << endl;
 
         // Convert BGR to HSV
         cvtColor(image, workedImage, COLOR_BGR2HSV);
@@ -50,14 +67,23 @@ int main() {
         vector<Detector::Ball> balls = detector.findBalls(workedImage);
 
         /// FIND GOALS
-        vector<vector<Point> > contours = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
+        //vector<vector<Point> > contours = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
 
-        /// DRAW
-        // Draw circles check
+        /// NOTIFY AI OF CURRENT STATE
+        ai.notifyPositions(balls);
+
+        /// ASK AI WHAT TO DO
+        string command = ai.getCommand();
+
+        cout << command << endl;
+
+        if (command.length()) {
+            communicator.sendCommand(command);
+        }
+
+        /// DRAW FOR TESTING
         Scalar red = Scalar(0, 0, 255);
         Scalar blue = Scalar(255, 0, 0);
-
-        cout << balls.size() << endl;
 
         for (int i = 0; i < balls.size(); ++i) {
             circle(image, balls[i].center, 2, red);
@@ -67,9 +93,11 @@ int main() {
             //circle(srcImage,  center, 2, red);
         }
 
+        /*
         for (int i = 0; i < contours.size(); ++i) {
             drawContours(image, contours, i, blue, 3);
         }
+         */
 
         imshow("BALLS", image);
 

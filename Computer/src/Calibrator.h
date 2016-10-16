@@ -20,9 +20,9 @@ public:
     void onMouse(int event, int x, int y);
     static void mouseEventHandler(int event, int x, int y, int, void* userdata);
 private:
-    Mat calibrationSrc;
-    vector< vector<Point> > polygons;
-    string windowName;
+    Mat mCalibrationSrc;
+    vector< vector<Point> > mPolygons;
+    string mWindowName;
 };
 
 

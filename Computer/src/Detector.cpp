@@ -137,8 +137,8 @@ vector<vector<Point> > Detector::findGoal(Mat &srcImage, string color) {
     filterColor(srcImage, filteredImage, color);
 
     // Display
-    namedWindow("filter");
-    imshow("filter", filteredImage);
+    //namedWindow("filter");
+    //imshow("filter", filteredImage);
 
     /// FIND CONTOURS
     vector<vector<Point> > contours;

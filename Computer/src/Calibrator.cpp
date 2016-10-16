@@ -23,29 +23,29 @@ void Calibrator::onMouse(int event, int x, int y)
     {
         vector<Point> polygon;
         polygon.push_back(Point(x, y));
-        polygons.push_back(polygon);
+        mPolygons.push_back(polygon);
 
         drawing = true;
     } else if (event == EVENT_MOUSEMOVE)
     {
         if (drawing)
         {
-            vector<Point> *polygon = &polygons.back();
+            vector<Point> *polygon = &mPolygons.back();
             Point previousPoint = polygon->back();
             Point currentPoint = Point(x, y);
 
             if (norm(currentPoint - previousPoint) >= 10)
             {
                 polygon->push_back(currentPoint);
-                line(calibrationSrc, previousPoint, currentPoint, Scalar(255, 0, 255), 1);
-                imshow(windowName, calibrationSrc);
+                line(mCalibrationSrc, previousPoint, currentPoint, Scalar(255, 0, 255), 1);
+                imshow(mWindowName, mCalibrationSrc);
             }
         }
     } else if (event == EVENT_LBUTTONUP)
     {
-        vector<Point> *polygon = &polygons.back();
-        line(calibrationSrc, polygon->back(), polygon->front(), Scalar(255, 0, 255), 1);
-        imshow(windowName, calibrationSrc);
+        vector<Point> *polygon = &mPolygons.back();
+        line(mCalibrationSrc, polygon->back(), polygon->front(), Scalar(255, 0, 255), 1);
+        imshow(mWindowName, mCalibrationSrc);
 
         drawing = false;
     }
@@ -117,19 +117,19 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
     // Create window
     if (color == "ORANGE")
     {
-        windowName = "Calibrate orange";
+        mWindowName = "Calibrate orange";
     } else if (color == "BLUE")
     {
-        windowName = "Calibrate blue";
+        mWindowName = "Calibrate blue";
     }
 
     // Get view
-    namedWindow(windowName);
+    namedWindow(mWindowName);
 
     while (1)
     {
-        cap >> calibrationSrc;
-        imshow(windowName, calibrationSrc);
+        cap >> mCalibrationSrc;
+        imshow(mWindowName, mCalibrationSrc);
 
         if (waitKey(30) > 0)
         {
@@ -139,15 +139,15 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
 
     // Create HSV image
     Mat hsvSrc;
-    cvtColor(calibrationSrc, hsvSrc, COLOR_BGR2HSV);
+    cvtColor(mCalibrationSrc, hsvSrc, COLOR_BGR2HSV);
 
     // Smooth the image
-    //  GaussianBlur(calibrationSrc, calibrationSrc, Size(25, 25), 2, 2);
+    //  GaussianBlur(mCalibrationSrc, mCalibrationSrc, Size(25, 25), 2, 2);
     //GaussianBlur(hsvSrc, hsvSrc, Size(25, 25), 2, 2);
-    imshow(windowName, calibrationSrc);
+    imshow(mWindowName, mCalibrationSrc);
 
     // Select areas
-    setMouseCallback(windowName, mouseEventHandler, this);
+    setMouseCallback(mWindowName, mouseEventHandler, this);
 
     while (1)
     {
@@ -161,15 +161,15 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
     int pixels = 0;
     vector<int> HSV[3];
 
-    for (int i = 0; i < calibrationSrc.rows; ++i)
+    for (int i = 0; i < mCalibrationSrc.rows; ++i)
     {
         // Get polygon points on this row
         vector<int> nodes;
 
-        for (int j = 0; j < calibrationSrc.cols; ++j)
+        for (int j = 0; j < mCalibrationSrc.cols; ++j)
         {
             // Get BGR color on image at row i and column j
-            Vec3b bgrPixel = calibrationSrc.at<Vec3b>(i, j);
+            Vec3b bgrPixel = mCalibrationSrc.at<Vec3b>(i, j);
 
             if (bgrPixel[0] == 255 && bgrPixel[1] == 0 && bgrPixel[2] == 255)
             {
@@ -189,7 +189,7 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
             for (int k = nodes[j]; k < nodes[j + 1]; ++k)
             {
                 // Make pixel on BGR image purple
-                calibrationSrc.at<Vec3b>(i, k) = Vec3b(255, 0, 255);
+                mCalibrationSrc.at<Vec3b>(i, k) = Vec3b(255, 0, 255);
 
                 // Get pixel color on HSV image
                 Vec3b hsvPixel = hsvSrc.at<Vec3b>(i, k);
@@ -203,7 +203,7 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
         }
     }
 
-    imshow(windowName, calibrationSrc);
+    imshow(mWindowName, mCalibrationSrc);
 
     // Calculate means and deviations
     int range[3][2]; // quasirow, -column
@@ -273,7 +273,7 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
         }
 
         // Show detected areas
-        imshow(windowName, image);
+        imshow(mWindowName, image);
 
         if (waitKey(30) > 0)
         {
@@ -281,7 +281,7 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
         }
     }
 
-    destroyWindow(windowName);
+    destroyWindow(mWindowName);
 
     // SAVE
     ini->SetValue(color.c_str(), "H_MIN", itos(range[0][0]).c_str());
