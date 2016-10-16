@@ -1,1 +1,6 @@
-.idea
+Motherboard/.pioenvs
+Motherboard/.clang_complete
+Motherboard/.gcc-flags.json
+Motherboard/.piolibdeps
+Motherboard/.travis.yml
+Computer/.idea
