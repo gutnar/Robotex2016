@@ -12,6 +12,8 @@ Serial com(COMTX, COMRX);
 RGBLed led1(LED1R, LED1G, LED1B);
 RGBLed led2(LED2R, LED2G, LED2B);
 
+DigitalIn infrared(ADC0);
+
 #define NUMBER_OF_MOTORS 4
 
 Motor motors[NUMBER_OF_MOTORS] = {
@@ -39,13 +41,6 @@ char buf[32];
 int serialCount = 0;
 bool serialData = false;
 
-void setSpeedToMotors(int motor1speed, int motor2speed, int motor3speed) {
-  motors[0].setSpeed(motor1speed);
-  motors[1].setSpeed(motor2speed);
-  motors[2].setSpeed(motor3speed);
-}
-
-
 void pidTick() {
   for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
     motors[i].pidTick();
@@ -54,21 +49,18 @@ void pidTick() {
 
 void toggleLed() {
   led1.setRed(!led1.getRed());
-  //serial.printf("tick\n");
 }
 
 int main() {
   pidTicker.attach(pidTick, 1/PID_FREQ);
-  //pidTicker.attach(toggleLed, 0.5);
-
   //serial.attach(&serialInterrupt);
 
   while (1) {
     if (serial.readable()) {
       buf[serialCount] = serial.getc();
+      serial.putc(buf[serialCount]);
 
       if (buf[serialCount] == '\n') {
-        serial.printf(buf);
         parseCommad(buf);
         serialCount = 0;
         memset(buf, 0, 32);
@@ -79,9 +71,7 @@ int main() {
   }
 }
 
-void parseCommad (char *command) {
-  //serial.printf("%s\n", command);
-
+void parseCommad(char *command) {
   // command == "sd14:16:10:30"
   if (command[0] == 's' && command[1] == 'd') {
     char * sd;
@@ -108,34 +98,7 @@ void parseCommad (char *command) {
     led1.setBlue(!led1.getBlue());
   }
 
-  /*
-  if (command[0] == 's' && command[1] == 'd') {
-  int16_t speed = atoi(command + 2);
-  motors[0].pid_on = 1;
-  motors[0].setSpeed(speed);
-}
-if (command[0] == 's') {
-for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
-serial.printf("s%d:%d\n", i, motors[i].getSpeed());
-}
-} else if (command[0] == 'w' && command[1] == 'l') {
-int16_t speed = atoi(command + 2);
-motors[0].pid_on = 0;
-if (speed < 0) motors[0].backward(-1*speed/255.0);
-else motors[0].forward(speed/255.0);
-} else if (command[0] == 'p' && command[1] == 'p') {
-uint8_t pGain = atoi(command + 2);
-motors[0].pgain = pGain;
-} else if (command[0] == 'p' && command[1] == 'i') {
-uint8_t iGain = atoi(command + 2);
-motors[0].igain = iGain;
-} else if (command[0] == 'p' && command[1] == 'd') {
-uint8_t dGain = atoi(command + 2);
-motors[0].dgain = dGain;
-} else if (command[0] == 'p') {
-char gain[20];
-motors[0].getPIDGain(gain);
-pc.printf("%s\n", gain);
-}
-*/
+  else if (command[0] == 'i') {
+    serial.printf("%d\n", infrared.read());
+  }
 }
