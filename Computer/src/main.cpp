@@ -9,7 +9,8 @@
 using namespace cv;
 using namespace std;
 
-int main() {
+int main()
+{
 
     /// LOAD CONFIGURATION
     CSimpleIniA configuration;
@@ -22,9 +23,11 @@ int main() {
     int vendorId = atoi(configuration.GetValue("settings", "VENDOR_ID", "0"));
     int productId = atoi(configuration.GetValue("settings", "PRODUCT_ID", "0"));
 
-    try {
+    try
+    {
         communicator.connect(vendorId, productId);
-    } catch (int exception) {
+    } catch (int exception)
+    {
         cout << "Could not create serial connection!" << endl;
         return 0;
     }
@@ -43,7 +46,8 @@ int main() {
     SI_Error rc = colors.LoadFile(("calibration/" + place + ".ini").c_str());
 
     // Calibrate
-    if (rc < 0) {
+    if (rc < 0)
+    {
         Calibrator calibrator;
         calibrator.calibrate(cap, &colors);
 
@@ -59,7 +63,8 @@ int main() {
     AI ai;
 
     /// MAIN LOOP
-    while (true) {
+    while (true)
+    {
         /// IMAGE MANIPULATION
         Mat image, workedImage;
         cap >> image;
@@ -83,16 +88,18 @@ int main() {
 
         //cout << command << endl;
 
-        if (command.length()) {
+        if (command.length())
+        {
             communicator.sendCommand("red");
-           // communicator.sendCommand(command);
+            // communicator.sendCommand(command);
         }
 
         /// DRAW FOR TESTING
         Scalar red = Scalar(0, 0, 255);
         Scalar blue = Scalar(255, 0, 0);
 
-        for (int i = 0; i < balls.size(); ++i) {
+        for (int i = 0; i < balls.size(); ++i)
+        {
             //circle(image, balls[i].center, 2, red);
             //circle(image, balls[i].center, balls[i].radius, red, 3);
             //circle(image, balls[i].center, sqrt(maxRR), blue, 3);
@@ -109,7 +116,8 @@ int main() {
         //imshow("BALLS", image);
 
         // Close when pressing space or esc
-        if (waitKey(30) > 0) {
+        if (waitKey(30) > 0)
+        {
             break;
         }
     }
