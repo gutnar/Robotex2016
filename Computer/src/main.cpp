@@ -90,8 +90,8 @@ int main()
 
         if (command.length())
         {
-            communicator.sendCommand("red");
-            // communicator.sendCommand(command);
+            //communicator.sendCommand("red");
+            communicator.sendCommand(command);
         }
 
         // Close when pressing space or esc

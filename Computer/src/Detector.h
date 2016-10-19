@@ -26,6 +26,9 @@ public:
     void filterColor(Mat &srcImage, Mat &dstImage, string color);
     vector<vector<Point> > findGoal(Mat &srcImage, string color);
     vector<Ball> findBalls(Mat &srcImage);
+
+    void onMouse(int event, int x, int y);
+    static void mouseEventHandler(int event, int x, int y, int, void* userdata);
 private:
     CSimpleIniA *mConfigurationIni;
     CSimpleIniA *mColorsIni;
