@@ -7,6 +7,21 @@
 using namespace std;
 using namespace cv;
 
+void Detector::onMouse(int event, int x, int y)
+{
+    static bool drawing = false;
+
+    if (event == EVENT_LBUTTONDOWN)
+    {
+    }
+}
+
+void Detector::mouseEventHandler(int event, int x, int y, int flags, void *userdata)
+{
+    Detector *detector = reinterpret_cast<Detector *>(userdata);
+    detector->onMouse(event, x, y);
+}
+
 // Constructor
 Detector::Detector(CSimpleIniA &configurationIni, CSimpleIniA &colorsIni) {
     //Pointers

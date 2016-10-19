@@ -94,27 +94,6 @@ int main()
             // communicator.sendCommand(command);
         }
 
-        /// DRAW FOR TESTING
-        Scalar red = Scalar(0, 0, 255);
-        Scalar blue = Scalar(255, 0, 0);
-
-        for (int i = 0; i < balls.size(); ++i)
-        {
-            //circle(image, balls[i].center, 2, red);
-            //circle(image, balls[i].center, balls[i].radius, red, 3);
-            //circle(image, balls[i].center, sqrt(maxRR), blue, 3);
-            //circle(srcImage,  center, 2, red);
-            //circle(srcImage,  center, 2, red);
-        }
-
-        /*
-        for (int i = 0; i < contours.size(); ++i) {
-            drawContours(image, contours, i, blue, 3);
-        }
-         */
-
-        //imshow("BALLS", image);
-
         // Close when pressing space or esc
         if (waitKey(30) > 0)
         {
