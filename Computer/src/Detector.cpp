@@ -9,10 +9,9 @@ using namespace cv;
 
 void Detector::onMouse(int event, int x, int y)
 {
-    static bool drawing = false;
-
     if (event == EVENT_LBUTTONDOWN)
     {
+        cout << x << " " << (IMAGE_HEIGHT - y) << endl;
     }
 }
 
@@ -27,6 +26,9 @@ Detector::Detector(CSimpleIniA &configurationIni, CSimpleIniA &colorsIni) {
     //Pointers
     mConfigurationIni = &configurationIni;
     mColorsIni = &colorsIni;
+
+    namedWindow("test");
+    setMouseCallback("test", mouseEventHandler, this);
 };
 
 void Detector::filterColor(Mat &srcImage, Mat &dstImage, string color) {
@@ -135,7 +137,6 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         balls.push_back(ball);
     }
 
-    namedWindow("test");
     imshow("test", srcImage);
 
     /// FIND CIRCLES THAT ARE NOT CONTAINED BY OTHER CIRCLES
