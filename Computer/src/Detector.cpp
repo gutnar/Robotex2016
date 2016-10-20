@@ -11,7 +11,7 @@ void Detector::onMouse(int event, int x, int y)
 {
     if (event == EVENT_LBUTTONDOWN)
     {
-        cout << x << " " << (IMAGE_HEIGHT - y) << endl;
+        cout << abs(IMAGE_HALF_WIDTH - x) << " " << (IMAGE_HEIGHT - y) << endl;
     }
 }
 
@@ -90,84 +90,29 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         }
 
         ball.center = Point(sumX/contourSize, sumY/contourSize);
+        // x-distance positive when ball on right half and negative when on left half
+        ball.distance = Point(round(DISTANCE_C*(ball.center.x - IMAGE_HALF_WIDTH)/maxY), round(DISTANCE_A + DISTANCE_B/maxY));
+
+        float leftDistance = (DISTANCE_C*(minX - IMAGE_HALF_WIDTH)/maxY);
+        float rightDistance = (DISTANCE_C*(maxX - IMAGE_HALF_WIDTH)/maxY);
+        float width = rightDistance - leftDistance;
+
+        if (width < 3 || width > 5) {
+            continue;
+        }
 
         drawContours(srcImage, contours, i, blue, 1);
-        putText(srcImage, itos(IMAGE_HEIGHT - maxY), Point(ball.center.x + 50, ball.center.y), 1, 1, white);
-
-        /**
-         * s / y^2 = A
-         * y = sqrt(s/A)
-         */
-
-        /// FIND THE BALLS' RADII
-        int sumR = 0;
-        // Sum of the squares
-        int sumRR = 0;
-        int maxRR = 0;
-        int Q = 0;
-
-        for (int j = 0; j < contourSize ; ++j) {
-            int RR = pow(ball.center.x - contours[i][j].x, 2) + pow(ball.center.y - contours[i][j].y, 2);
-            sumR += sqrt(RR);
-            sumRR += RR;
-
-            Q += abs(ball.center.x - contours[i][j].x) + abs(ball.center.y - contours[i][j].y);
-
-            if (RR > maxRR) {
-                maxRR = RR;
-            }
-        }
-
-        // Mean
-        ball.radius = sumR/contourSize;
-        int deviation = sqrt(sumRR/contourSize  - pow(ball.radius, 2));
-
-        /*
-        if (ball.radius < 5 || ball.radius > 50) {
-            continue;
-        }
-
-        if ((float) deviation/ball.radius > 0.5) {
-            continue;
-        }
-         */
-
-        //ball.radius = Q/contourSize;
+        //putText(srcImage, itos(IMAGE_HEIGHT - maxY), Point(ball.center.x + 50, ball.center.y), 1, 1, white);
+        putText(srcImage, itos(round(rightDistance-leftDistance)), Point(ball.center.x+20, ball.center.y), 1, 1, white);
 
         balls.push_back(ball);
     }
 
+    // center line for measuring x-axis distances
+    line(srcImage, Point(IMAGE_HALF_WIDTH, 0), Point(IMAGE_HALF_WIDTH, IMAGE_HEIGHT), Scalar(255, 0, 255), 1);
     imshow("test", srcImage);
 
-    /// FIND CIRCLES THAT ARE NOT CONTAINED BY OTHER CIRCLES
-    vector<Ball> singleBalls;
-
-    for (int i = 0; i < balls.size(); ++i) {
-        bool single = true;
-
-        for (int j = 0; j < balls.size(); ++j) {
-            if (i == j) {
-                continue;
-            }
-
-            if (balls[i].radius > balls[j].radius) {
-                continue;
-            }
-
-            int d = sqrt(pow(balls[i].center.x - balls[j].center.x, 2) + pow(balls[i].center.y - balls[j].center.y, 2));
-
-            if (d < max(balls[i].radius, balls[j].radius)) {
-                single = false;
-                break;
-            }
-        }
-
-        if (single) {
-            singleBalls.push_back(balls[i]);
-        }
-    }
-
-    return singleBalls;
+    return balls;
 }
 
 /// GOAL

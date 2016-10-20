@@ -11,7 +11,6 @@ using namespace std;
 
 int main()
 {
-
     /// LOAD CONFIGURATION
     CSimpleIniA configuration;
     configuration.SetUnicode();
@@ -86,7 +85,7 @@ int main()
         /// ASK AI WHAT TO DO
         string command = ai.getCommand();
 
-        //cout << command << endl;
+        cout << command << endl;
 
         if (command.length())
         {

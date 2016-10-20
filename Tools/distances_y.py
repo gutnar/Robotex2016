@@ -13,7 +13,7 @@ for rawline in lines:
     lineNumber += 1
 
     if len(line) == 1 and line[0] != "":
-        distances.append(float(line[0]) - 41.3)
+        distances.append(float(line[0]))
     elif len(line) == 2:
         sumPixels += 480 - float(line[1])
         count += 1
@@ -41,4 +41,4 @@ print("A", A, "B", B)
 for i in range(N):
     print(distances[i], A+B/pixels[i])
 
-print(A+B/(480-281))
+print(A+B/(480-207))

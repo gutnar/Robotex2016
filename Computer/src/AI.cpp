@@ -54,24 +54,38 @@ string AI::getCommand()
                 return "sd10:10:10:0";
             }
             break;
-        case GET_BALL_STATE:
-            if (mTargetBall->center.x > IMAGE_HALF_WIDTH - 20 && mTargetBall->center.x < IMAGE_HALF_WIDTH + 20)
-            {
-                return "sd0:0:0:0";
-            }
-
-            if (mTargetBall->center.x < IMAGE_HALF_WIDTH)
-            {
-                return "sd-10:-10:-10:0";
-            }
-
-            if (mTargetBall->center.x > IMAGE_HALF_WIDTH)
-            {
-                return "sd10:10:10:0";
-            }
-            break;
         case SHOOT_STATE:
             mState = CHOOSE_BALL_STATE;
+            break;
+        case GET_BALL_STATE:
+            //cout << mTargetBall->center.x << endl;
+            mTargetBall = getClosestBall();
+
+            if (mTargetBall == NULL) {
+                mState = FIND_BALLS_STATE;
+            } else {
+                double angle = atan((double) mTargetBall->distance.x / (mTargetBall->distance.y + 20)) * 180 / 3.14159;
+
+                cout << angle << endl;
+
+                if (abs(angle) < 3) {
+                    if (mTargetBall->distance.y < 5) {
+                        return "sd0:0:0:0";
+                    } else {
+                        return "sd-10:10:0:0";
+                        //return "sd0:0:0:0";
+                    }
+                }
+
+                int turnSpeed = min((int) abs(angle), 10);
+
+                if (angle < 0) {
+                    return "sd-" + itos(turnSpeed) + ":-" + itos(turnSpeed) + ":-" + itos(turnSpeed) + ":0";
+                }
+  0) {
+                    return "sd" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":0";
+                }
+            }
             break;
     }
 

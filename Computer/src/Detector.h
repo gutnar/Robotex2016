@@ -18,7 +18,7 @@ public:
     // Ball structure
     struct Ball {
         Point center;
-        int radius;
+        Point distance;
     };
 
     // Constructor declaration

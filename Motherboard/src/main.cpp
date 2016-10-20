@@ -41,24 +41,31 @@ char buf[32];
 int serialCount = 0;
 bool serialData = false;
 
-void pidTick() {
-  for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
-    motors[i].pidTick();
-  }
-}
-
 void toggleLed() {
   led1.setRed(!led1.getRed());
 }
 
+void pidTick() {
+  for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
+    motors[i].pidTick();
+  }
+
+  if (pidTickerCount++ % 100 == 0) {
+    toggleLed();
+  }
+}
+
 int main() {
+  pwm1.period_us(400); // dribbler motor test
   pidTicker.attach(pidTick, 1/PID_FREQ);
   //serial.attach(&serialInterrupt);
+
+  //pwm1.pulsewidth_us(1000);
 
   while (1) {
     if (serial.readable()) {
       buf[serialCount] = serial.getc();
-      serial.putc(buf[serialCount]);
+      //serial.putc(buf[serialCount]);
 
       if (buf[serialCount] == '\n') {
         parseCommad(buf);
@@ -82,7 +89,12 @@ void parseCommad(char *command) {
     }
   }
 
-  if (command[0] == 's') {
+  else if (command[0] == 'd') {
+    pwm1.pulsewidth_us((int) atoi(command+1));
+    serial.printf("sending %d\n", (int) atoi(command+1));
+  }
+
+  else if (command[0] == 's' && command[1] == 'g') {
     serial.printf("%d:%d:%d:%d\n", motors[0].getSpeed(), motors[1].getSpeed(), motors[2].getSpeed(), motors[3].getSpeed());
   }
 

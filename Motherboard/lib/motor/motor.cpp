@@ -44,7 +44,7 @@ Motor::Motor(Serial *pc, PinName pwm, PinName dir1, PinName dir2, PinName fault,
     dir = 0;
     motor_polarity = 0;
     pgain = 0.02;
-    igain = 0;
+    igain = 0.001;
     dgain = 0;
     pwm_min = 25;
     intgrl = 0;

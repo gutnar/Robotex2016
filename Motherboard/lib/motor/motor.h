@@ -25,7 +25,7 @@ public:
     void backward(float pwm);
     void pidTick();
 private:
-    static const uint PWM_PERIOD_US = 1000;
+    static const uint PWM_PERIOD_US = 400;
 
     Serial *_pc;
     PwmOut _pwm;
