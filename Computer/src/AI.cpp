@@ -82,7 +82,8 @@ string AI::getCommand()
                 if (angle < 0) {
                     return "sd-" + itos(turnSpeed) + ":-" + itos(turnSpeed) + ":-" + itos(turnSpeed) + ":0";
                 }
-  0) {
+
+                if (angle > 0) {
                     return "sd" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":0";
                 }
             }
