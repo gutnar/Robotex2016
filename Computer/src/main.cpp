@@ -80,12 +80,12 @@ int main()
         //vector<vector<Point> > contours = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
 
         /// NOTIFY AI OF CURRENT STATE
-        ai.notifyPositions(balls);
+        ai.notify(balls, communicator.isBallCaptured());
 
         /// ASK AI WHAT TO DO
         string command = ai.getCommand();
 
-        cout << command << endl;
+        //cout << command << endl;
 
         if (command.length())
         {
@@ -101,6 +101,7 @@ int main()
     }
 
     communicator.sendCommand("sd0:0:0:0");
+    communicator.sendCommand("d0");
 
     return 0;
 }

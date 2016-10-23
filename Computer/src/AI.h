@@ -14,19 +14,20 @@ class AI
 public:
     AI();
 
-    void notifyPositions(vector<Detector::Ball> &balls);
+    void notify(vector<Detector::Ball> &balls, bool ballCaptured);
 
     string getCommand();
 
 private:
     vector<Detector::Ball> mBalls;
+    bool mBallCaptured;
 
     Detector::Ball *getClosestBall();
 
     // State
     enum
     {
-        IDLE_STATE, CHOOSE_BALL_STATE, FIND_BALLS_STATE, GET_BALL_STATE, SHOOT_STATE
+        IDLE_STATE, CHOOSE_BALL_STATE, FIND_BALLS_STATE, GET_BALL_STATE, SHOOT_STATE, DRIBBLE_STATE
     };
 
     int mState = IDLE_STATE;

@@ -9,9 +9,10 @@ AI::AI()
 
 }
 
-void AI::notifyPositions(vector<Detector::Ball> &balls)
+void AI::notify(vector<Detector::Ball> &balls, bool ballCaptured)
 {
     mBalls = balls;
+    mBallCaptured = ballCaptured;
 }
 
 Detector::Ball *AI::getClosestBall()
@@ -55,7 +56,8 @@ string AI::getCommand()
             }
             break;
         case SHOOT_STATE:
-            mState = CHOOSE_BALL_STATE;
+            //mState = CHOOSE_BALL_STATE;
+            return "sd7:7:7:0";
             break;
         case GET_BALL_STATE:
             //cout << mTargetBall->center.x << endl;
@@ -66,18 +68,27 @@ string AI::getCommand()
             } else {
                 double angle = atan((double) mTargetBall->distance.x / (mTargetBall->distance.y + 20)) * 180 / 3.14159;
 
-                cout << angle << endl;
+                //cout << angle << endl;
 
-                if (abs(angle) < 3) {
-                    if (mTargetBall->distance.y < 5) {
-                        return "sd0:0:0:0";
+                if (abs(mTargetBall->distance.x) < 4) {
+                    if (mTargetBall->distance.y < 10) {
+                        mState = DRIBBLE_STATE;
+                    } else if (mTargetBall->distance.y < 25) {
+                        return "sd-25:25:0:0";
                     } else {
-                        return "sd-10:10:0:0";
+                        if (mTargetBall->distance.x < -2) {
+                            return "sd-65:65:5:0";
+                        } else if (mTargetBall->distance.x > 2) {
+                            return "sd-65:65:-5:0";
+                        } else {
+                            return "sd-65:65:0:0";
+                        }
                         //return "sd0:0:0:0";
                     }
+
                 }
 
-                int turnSpeed = min((int) abs(angle), 10);
+                int turnSpeed = 6;// min((int) abs(angle), 10);
 
                 if (angle < 0) {
                     return "sd-" + itos(turnSpeed) + ":-" + itos(turnSpeed) + ":-" + itos(turnSpeed) + ":0";
@@ -86,6 +97,13 @@ string AI::getCommand()
                 if (angle > 0) {
                     return "sd" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":0";
                 }
+            }
+            break;
+        case DRIBBLE_STATE:
+            if (mBallCaptured) {
+                mState = SHOOT_STATE;
+            } else {
+                return "sd-7:7:0:0\nd1";
             }
             break;
     }

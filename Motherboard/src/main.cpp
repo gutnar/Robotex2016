@@ -41,26 +41,26 @@ char buf[32];
 int serialCount = 0;
 bool serialData = false;
 
-void toggleLed() {
-  led1.setRed(!led1.getRed());
-}
-
 void pidTick() {
   for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
     motors[i].pidTick();
   }
 
-  if (pidTickerCount++ % 100 == 0) {
-    toggleLed();
+  if (pidTickerCount++ % 25 == 0) {
+    led1.setBlue(!led1.getBlue());
   }
 }
 
 int main() {
-  pwm1.period_us(400); // dribbler motor test
   pidTicker.attach(pidTick, 1/PID_FREQ);
   //serial.attach(&serialInterrupt);
 
-  //pwm1.pulsewidth_us(1000);
+  // dribbler motor test
+  pwm1.period_us(400);
+  pwm1.pulsewidth_us(100);
+
+  // Ball detector status
+  int infraredStatus = -1;
 
   while (1) {
     if (serial.readable()) {
@@ -74,6 +74,15 @@ int main() {
       } else {
         serialCount++;
       }
+    }
+
+    /// INFRARED DETECTOR
+    int newInfraredStatus = infrared.read();
+
+    if (newInfraredStatus != infraredStatus) {
+      infraredStatus = newInfraredStatus;
+      serial.printf("i%d\n", newInfraredStatus);
+      led2.setGreen(infraredStatus);
     }
   }
 }
@@ -90,8 +99,13 @@ void parseCommad(char *command) {
   }
 
   else if (command[0] == 'd') {
-    pwm1.pulsewidth_us((int) atoi(command+1));
-    serial.printf("sending %d\n", (int) atoi(command+1));
+    if (command[1] == '0') {
+      pwm1.pulsewidth_us(100);
+    } else {
+      pwm1.pulsewidth_us(150);
+    }
+    //pwm1.pulsewidth_us((int) atoi(command+1));
+    //serial.printf("sending %d\n", (int) atoi(command+1));
   }
 
   else if (command[0] == 's' && command[1] == 'g') {

@@ -20,7 +20,10 @@ void Communicator::connect(int vendorId, int productId) {
         if (vid == vendorId && pid == productId) {
             // Device found, open it for communication
             mPort = mPorts[i];
-            sp_open(mPort, SP_MODE_WRITE);
+            sp_open(mPort, SP_MODE_READ_WRITE);
+
+            // Test
+
             return;
         }
     }
@@ -35,4 +38,16 @@ Communicator::~Communicator() {
 
 void Communicator::sendCommand(string command) {
     sp_nonblocking_write(mPort, (command + "\n").c_str(), command.length() + 1);
+}
+
+bool Communicator::isBallCaptured() {
+    sp_nonblocking_read(mPort, mBuf, 3);
+
+    if (mBuf[1] == '1') {
+        mBallCapturedFrames++;
+    } else {
+        mBallCapturedFrames = 0;
+    }
+
+    return mBallCapturedFrames == 10;
 }

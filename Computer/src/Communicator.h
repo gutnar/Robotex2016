@@ -15,7 +15,10 @@ public:
     ~Communicator();
     void connect(int vendorId, int productId);
     void sendCommand(string command);
+    bool isBallCaptured();
 private:
+    char mBuf[3];
+    int mBallCapturedFrames;
     struct sp_port ** mPorts;
     sp_port * mPort;
 };
