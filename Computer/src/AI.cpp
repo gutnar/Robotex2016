@@ -86,11 +86,11 @@ string AI::getCommand()
                         return "sd-25:25:0:0";
                     } else {
                         if (mTargetBall->distance.x < -2) {
-                            return "sd-65:65:5:0";
+                            return "sd-25:25:5:0";
                         } else if (mTargetBall->distance.x > 2) {
-                            return "sd-65:65:-5:0";
+                            return "sd-25:25:-5:0";
                         } else {
-                            return "sd-65:65:0:0";
+                            return "sd-25:25:0:0";
                         }
                         //return "sd0:0:0:0";
                     }
