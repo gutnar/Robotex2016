@@ -1,0 +1,3 @@
+/home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/rebuild_cache.dir
+/home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/edit_cache.dir
+/home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/Robotex2016.dir

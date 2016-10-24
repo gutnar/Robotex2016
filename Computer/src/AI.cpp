@@ -9,8 +9,9 @@ AI::AI()
 
 }
 
-void AI::notify(vector<Detector::Ball> &balls, bool ballCaptured)
+void AI::notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured)
 {
+    mGameIsOn = gameIsOn;
     mBalls = balls;
     mBallCaptured = ballCaptured;
 }
@@ -32,10 +33,18 @@ Detector::Ball *AI::getClosestBall()
 
 string AI::getCommand()
 {
+    if (!mGameIsOn) {
+        mState = IDLE_STATE;
+    }
+
     switch (mState)
     {
         case IDLE_STATE:
-            mState = CHOOSE_BALL_STATE;
+            if (mGameIsOn) {
+                mState = CHOOSE_BALL_STATE;
+            } else {
+                return "sd0:0:0:0\nd0";
+            }
             break;
         case CHOOSE_BALL_STATE:
             mTargetBall = getClosestBall();

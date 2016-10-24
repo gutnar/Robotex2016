@@ -14,10 +14,16 @@ class Communicator {
 public:
     ~Communicator();
     void connect(int vendorId, int productId);
+    void connect(string name);
     void sendCommand(string command);
+    void send(string bytes);
     bool isBallCaptured();
+    string getRefereeCommand();
 private:
-    char mBuf[3];
+    char mBuf[11];
+    int mBufWritten = 0;
+    string lastCommand = "";
+    char mInfraredBuf[3];
     int mBallCapturedFrames;
     struct sp_port ** mPorts;
     sp_port * mPort;

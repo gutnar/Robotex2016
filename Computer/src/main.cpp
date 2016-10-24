@@ -16,18 +16,37 @@ int main()
     configuration.SetUnicode();
     configuration.LoadFile("configuration.ini");
 
-    /// CREATE SERIAL COMMUNICATOR
-    Communicator communicator;
-
-    int vendorId = atoi(configuration.GetValue("settings", "VENDOR_ID", "0"));
-    int productId = atoi(configuration.GetValue("settings", "PRODUCT_ID", "0"));
+    /// CREATE SRF COMMUNICATOR
+    Communicator srf;
 
     try
     {
-        communicator.connect(vendorId, productId);
+        /*
+        int vendorId = atoi(configuration.GetValue("srf", "VENDOR_ID", "0"));
+        int productId = atoi(configuration.GetValue("srf", "PRODUCT_ID", "0"));
+        srf.connect(vendorId, productId);
+         */
+        srf.connect("/dev/ttyACM0");
     } catch (int exception)
     {
-        cout << "Could not create serial connection!" << endl;
+        cout << "Could not create serial RF connection!" << endl;
+        return 0;
+    }
+
+    /// CREATE SERIAL MOTHERBOARD COMMUNICATOR
+    Communicator communicator;
+
+    try
+    {
+        /*
+        int vendorId = atoi(configuration.GetValue("motherboard", "VENDOR_ID", "0"));
+        int productId = atoi(configuration.GetValue("motherboard", "PRODUCT_ID", "0"));
+        communicator.connect(vendorId, productId);
+         */
+        communicator.connect("/dev/ttyACM1");
+    } catch (int exception)
+    {
+        cout << "Could not create serial connection to motherboard!" << endl;
         return 0;
     }
 
@@ -61,6 +80,9 @@ int main()
     /// SET UP AI
     AI ai;
 
+    // GAME STATUS
+    bool gameIsOn = false;
+
     /// MAIN LOOP
     while (true)
     {
@@ -79,13 +101,22 @@ int main()
         /// FIND GOALS
         //vector<vector<Point> > contours = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
 
+        /// REFEREE COMMANDS
+        string refereeCommand = srf.getRefereeCommand();
+
+        if (refereeCommand == "START") {
+            gameIsOn = true;
+        } else if (refereeCommand == "STOP") {
+            gameIsOn = false;
+        }
+
         /// NOTIFY AI OF CURRENT STATE
-        ai.notify(balls, communicator.isBallCaptured());
+        ai.notify(gameIsOn, balls, communicator.isBallCaptured());
 
         /// ASK AI WHAT TO DO
         string command = ai.getCommand();
 
-        //cout << command << endl;
+        cout << command << endl;
 
         if (command.length())
         {

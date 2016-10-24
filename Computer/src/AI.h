@@ -14,13 +14,14 @@ class AI
 public:
     AI();
 
-    void notify(vector<Detector::Ball> &balls, bool ballCaptured);
+    void notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured);
 
     string getCommand();
 
 private:
     vector<Detector::Ball> mBalls;
     bool mBallCaptured;
+    bool mGameIsOn;
 
     Detector::Ball *getClosestBall();
 
