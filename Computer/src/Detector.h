@@ -24,7 +24,7 @@ public:
     // Constructor declaration
     Detector(CSimpleIniA &configurationIni, CSimpleIniA &colorsIni);
     void filterColor(Mat &srcImage, Mat &dstImage, string color);
-    vector<vector<Point> > findGoal(Mat &srcImage, string color);
+    Point findGoal(Mat &srcImage, string color);
     vector<Ball> findBalls(Mat &srcImage);
 
     void onMouse(int event, int x, int y);

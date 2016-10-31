@@ -63,14 +63,17 @@ bool Communicator::isBallCaptured() {
 }
 
 string Communicator::getRefereeCommand() {
-    mBufWritten += sp_nonblocking_read(mPort, mBuf+(mBufWritten%11), 11);
+    mBufWritten += sp_nonblocking_read(mPort, mBuf+(mBufWritten%12), 12);
 
-    for (int i = 0; i < 11; ++i) {
-        if (mBuf[i] == 'a' && mBuf[(i+1)%11] == 'A' && mBuf[(i+2)%11] == 'K') {
+    // aAXSTART----
+    //cout << "mBuf " << mBuf << endl;
+
+    for (int i = 0; i < 12; ++i) {
+        if (mBuf[i] == 'a' && mBuf[(i+1)%12] == 'A' && mBuf[(i+2)%12] == 'X') {
             string command;
 
-            for (int j = 3; j < 11; ++j) {
-                command += mBuf[(i+j)%11];
+            for (int j = 3; j < 12; ++j) {
+                command += mBuf[(i+j)%12];
             }
 
             if (command == lastCommand) {
@@ -79,18 +82,24 @@ string Communicator::getRefereeCommand() {
 
             lastCommand = command;
 
-            if (command == "START---") {
-                send("aAKACK-----");
+            if (command == "START----") {
+                send("aABACK-----");
                 return "START";
             }
 
-            if (command == "STOP----") {
-                send("aAKACK-----");
+            if (command == "STOP-----") {
+                send("aABACK-----");
                 return "STOP";
             }
 
-            if (command == "PING----") {
-                send("aAKACK-----");
+            if (command == "PING-----") {
+                send("aABACK------");
+
+                /*
+                for (int j = 0; j < 11; ++j) {
+                    mBuf[j] = '-';
+                }
+                 */
             }
 
             break;

@@ -30,7 +30,7 @@ int main()
     } catch (int exception)
     {
         cout << "Could not create serial RF connection!" << endl;
-        return 0;
+        //return 0;
     }
 
     /// CREATE SERIAL MOTHERBOARD COMMUNICATOR
@@ -47,7 +47,7 @@ int main()
     } catch (int exception)
     {
         cout << "Could not create serial connection to motherboard!" << endl;
-        return 0;
+        //return 0;
     }
 
     /// START VIDEO CAPTURE
@@ -100,6 +100,7 @@ int main()
 
         /// FIND GOALS
         //vector<vector<Point> > contours = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
+        Point goalCenter = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
 
         /// REFEREE COMMANDS
         string refereeCommand = srf.getRefereeCommand();
@@ -111,12 +112,10 @@ int main()
         }
 
         /// NOTIFY AI OF CURRENT STATE
-        ai.notify(gameIsOn, balls, communicator.isBallCaptured());
+        ai.notify(gameIsOn, balls, communicator.isBallCaptured(), goalCenter);
 
         /// ASK AI WHAT TO DO
         string command = ai.getCommand();
-
-        cout << command << endl;
 
         if (command.length())
         {

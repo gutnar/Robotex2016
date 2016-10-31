@@ -20,7 +20,7 @@ public:
     bool isBallCaptured();
     string getRefereeCommand();
 private:
-    char mBuf[11];
+    char mBuf[12];
     int mBufWritten = 0;
     string lastCommand = "";
     char mInfraredBuf[3];

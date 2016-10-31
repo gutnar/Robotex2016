@@ -27,8 +27,8 @@ Detector::Detector(CSimpleIniA &configurationIni, CSimpleIniA &colorsIni) {
     mConfigurationIni = &configurationIni;
     mColorsIni = &colorsIni;
 
-    namedWindow("test");
-    setMouseCallback("test", mouseEventHandler, this);
+    //namedWindow("test");
+    //setMouseCallback("test", mouseEventHandler, this);
 };
 
 void Detector::filterColor(Mat &srcImage, Mat &dstImage, string color) {
@@ -110,19 +110,15 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
 
     // center line for measuring x-axis distances
     line(srcImage, Point(IMAGE_HALF_WIDTH, 0), Point(IMAGE_HALF_WIDTH, IMAGE_HEIGHT), Scalar(255, 0, 255), 1);
-    imshow("test", srcImage);
+    //imshow("test", srcImage);
 
     return balls;
 }
 
 /// GOAL
-vector<vector<Point> > Detector::findGoal(Mat &srcImage, string color) {
+Point Detector::findGoal(Mat &srcImage, string color) {
     Mat filteredImage;
     filterColor(srcImage, filteredImage, color);
-
-    // Display
-    //namedWindow("filter");
-    //imshow("filter", filteredImage);
 
     /// FIND CONTOURS
     vector<vector<Point> > contours;
@@ -131,5 +127,48 @@ vector<vector<Point> > Detector::findGoal(Mat &srcImage, string color) {
     // Find contours from filtered image
     findContours(filteredImage, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
 
-    return contours;
+    Scalar blue = Scalar(255, 0, 0);
+
+    if (contours.size()) {
+        int largestContourIndex = 0;
+        // Go through all contours
+        for (int i = 0; i < contours.size(); ++i) {
+            // Go through contour
+            if (contours[i].size() > contours[largestContourIndex].size()) {
+                largestContourIndex = i;
+            }
+
+        }
+
+        vector<Point> largestContour = contours[largestContourIndex];
+
+        int minY = IMAGE_WIDTH;
+        int maxY = 0;
+        int minX = IMAGE_HEIGHT;
+        int maxX = 0;
+
+        // The center of the contour
+        for (int j = 0; j < largestContour.size(); ++j) {
+            if (minY > largestContour[j].y) minY = largestContour[j].y;
+            if (maxY < largestContour[j].y) maxY = largestContour[j].y;
+            if (minX > largestContour[j].x) minX = largestContour[j].x;
+            if (maxX < largestContour[j].x) maxX = largestContour[j].x;
+
+            //drawContours(filteredImage, contours, i, blue, 1);
+        }
+
+        // Center  coordinates
+        Point center((maxX-minX)/2 + minX, (maxY-minY)/2 + minY);
+        circle(filteredImage, center, 5, blue);
+
+        drawContours(filteredImage, contours, largestContourIndex, blue, 1);
+
+        // Display
+        namedWindow("test");
+        imshow("test", filteredImage);
+
+        return center;
+    }
+
+    return Point(0, 0);
 }

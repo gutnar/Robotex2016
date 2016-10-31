@@ -9,11 +9,12 @@ AI::AI()
 
 }
 
-void AI::notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured)
+void AI::notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured, Point goalCenter)
 {
     mGameIsOn = gameIsOn;
     mBalls = balls;
     mBallCaptured = ballCaptured;
+    mGoalCenter = goalCenter;
 }
 
 Detector::Ball *AI::getClosestBall()
@@ -65,8 +66,17 @@ string AI::getCommand()
             }
             break;
         case SHOOT_STATE:
-            //mState = CHOOSE_BALL_STATE;
-            return "sd7:7:7:0";
+            // FIND GOAL
+            if (mGoalCenter.x == 0 && mGoalCenter.y == 0) {
+                return "sd7:7:7:0";
+            } else {
+                int difference = 5;
+                if (mGoalCenter.x > IMAGE_HALF_WIDTH + difference && mGoalCenter.x < IMAGE_HALF_WIDTH - difference) {
+                    return "sd5:5:5:0";
+                }
+
+            }
+
             break;
         case GET_BALL_STATE:
             //cout << mTargetBall->center.x << endl;

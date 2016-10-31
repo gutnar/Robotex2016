@@ -14,7 +14,7 @@ class AI
 public:
     AI();
 
-    void notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured);
+    void notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured, Point goalCenter);
 
     string getCommand();
 
@@ -22,6 +22,7 @@ private:
     vector<Detector::Ball> mBalls;
     bool mBallCaptured;
     bool mGameIsOn;
+    Point mGoalCenter;
 
     Detector::Ball *getClosestBall();
 
