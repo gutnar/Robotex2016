@@ -96,6 +96,9 @@ int main()
         Mat image, workedImage;
         cap >> image;
 
+        //namedWindow("cam");
+        //imshow("cam", image);
+
         //cout << image.cols << endl;
 
         // Convert BGR to HSV

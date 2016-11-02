@@ -110,7 +110,7 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
 
     // center line for measuring x-axis distances
     line(srcImage, Point(IMAGE_HALF_WIDTH, 0), Point(IMAGE_HALF_WIDTH, IMAGE_HEIGHT), Scalar(255, 0, 255), 1);
-    //imshow("test", srcImage);
+    imshow("test", srcImage);
 
     return balls;
 }
@@ -164,8 +164,8 @@ Point Detector::findGoal(Mat &srcImage, string color) {
         drawContours(filteredImage, contours, largestContourIndex, blue, 1);
 
         // Display
-        namedWindow("test");
-        imshow("test", filteredImage);
+        //namedWindow("test");
+        //imshow("test", filteredImage);
 
         return center;
     }

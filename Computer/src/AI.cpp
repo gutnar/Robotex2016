@@ -68,14 +68,14 @@ string AI::getCommand(int dt)
         case SHOOT_STATE:
             // FIND GOAL
             if (mGoalCenter.x == 0 && mGoalCenter.y == 0) {
-                return "sd7:7:7:0";
+                return "sd10:10:10:0";
             } else {
                 int difference = 5;
                 if (mGoalCenter.x > IMAGE_HALF_WIDTH + difference)
                 {
-                    return "sd5:5:5:0";
+                    return "sd10:10:10:0";
                 } else if (mGoalCenter.x < IMAGE_HALF_WIDTH - difference) {
-                    return "sd-5:-5:-5:0";
+                    return "sd-10:-10:-10:0";
                 } else {
                     return "sd0:0:0:0";
                 }
@@ -91,12 +91,25 @@ string AI::getCommand(int dt)
                 float error = 0 - mTargetBall->distance.x;
                 mIntegral += error*dt;
                 float derivative = (error - mPreviousError)/dt;
-                float output = 0.1*error + 0.4*error + 0.1*derivative;
+                float output = -(0.05*error + 0.20*error + 0.05*derivative)*3;
                 mPreviousError = error;
 
-                cout << output << endl;
-                
-                return "sd"+itos(output)+":"+itos(output)+":"+itos(output)+":0";
+                float forwardSpeed = 20;
+
+                if (mTargetBall->distance.y < 10 && output < 1) {
+                    mState = DRIBBLE_STATE;
+                }
+
+                else if (mTargetBall->distance.y < 20 && mTargetBall->distance.x < 20) {
+                    cout << "rotate " << 2*output << endl;
+                    return "sd" + itos(2*output) + ":" + itos(2*output) + ":" + itos(2*output) + ":0";
+                }
+
+                else {
+                    cout << "forward" << endl;
+                    return "sd" + itos(-forwardSpeed) + ":" + itos(forwardSpeed) + ":" + itos(output) + ":0";
+                    return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
+                }
 
 
                 /*
