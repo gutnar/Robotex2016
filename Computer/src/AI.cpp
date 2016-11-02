@@ -100,7 +100,7 @@ string AI::getCommand(int dt)
                     mState = DRIBBLE_STATE;
                 }
 
-                else if (mTargetBall->distance.y < 20 && mTargetBall->distance.x < 20) {
+                else if (mTargetBall->distance.y < 20 && mTargetBall->distance.x < 20 && mTargetBall->distance.x > 4) {
                     cout << "rotate " << 2*output << endl;
                     return "sd" + itos(2*output) + ":" + itos(2*output) + ":" + itos(2*output) + ":0";
                 }
