@@ -16,7 +16,7 @@ public:
 
     void notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured, Point goalCenter);
 
-    string getCommand();
+    string getCommand(int dt);
 
 private:
     vector<Detector::Ball> mBalls;
@@ -36,6 +36,10 @@ private:
 
     // Target ball
     Detector::Ball *mTargetBall;
+
+    // PID
+    float mIntegral;
+    float mPreviousError;
 };
 
 

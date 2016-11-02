@@ -32,7 +32,7 @@ Detector::Ball *AI::getClosestBall()
     return closestBall;
 }
 
-string AI::getCommand()
+string AI::getCommand(int dt)
 {
     if (!mGameIsOn) {
         mState = IDLE_STATE;
@@ -82,12 +82,21 @@ string AI::getCommand()
             }
             break;
         case GET_BALL_STATE:
-            //cout << mTargetBall->center.x << endl;
             mTargetBall = getClosestBall();
 
             if (mTargetBall == NULL) {
                 mState = FIND_BALLS_STATE;
             } else {
+                // pid test
+                float error = 0 - mTargetBall->distance.x;
+                mIntegral += error*dt;
+                float derivative = (error - mPreviousError)/dt;
+                float output = 1*error + 4*error + 1*derivative;
+                mPreviousError = error;
+
+                cout << output << endl;
+
+
                 double angle = atan((double) mTargetBall->distance.x / (mTargetBall->distance.y + 20)) * 180 / 3.14159;
 
                 //cout << angle << endl;
@@ -110,7 +119,7 @@ string AI::getCommand()
 
                 }
 
-                int turnSpeed = 6;// min((int) abs(angle), 10);
+                int turnSpeed = 2;// min((int) abs(angle), 10);
 
                 if (angle < 0) {
                     return "sd-" + itos(turnSpeed) + ":-" + itos(turnSpeed) + ":-" + itos(turnSpeed) + ":0";
@@ -119,6 +128,20 @@ string AI::getCommand()
                 if (angle > 0) {
                     return "sd" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":0";
                 }
+
+
+                /*
+                    previous_error = 0
+                    integral = 0
+                    start:
+                      error = setpoint - measured_value
+                      integral = integral + error*dt
+                      derivative = (error - previous_error)/dt
+                      output = Kp*error + Ki*integral + Kd*derivative
+                      previous_error = error
+                      wait(dt)
+                      goto start
+                 */
             }
             break;
         case DRIBBLE_STATE:
@@ -130,5 +153,5 @@ string AI::getCommand()
             break;
     }
 
-    return getCommand();
+    return getCommand(dt);
 }

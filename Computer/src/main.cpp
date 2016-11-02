@@ -1,5 +1,6 @@
 #include <opencv2/highgui.hpp>
 #include <SimpleIni.h>
+#include <sys/time.h>
 
 #include "Communicator.h"
 #include "Calibrator.h"
@@ -81,7 +82,12 @@ int main()
     AI ai;
 
     // GAME STATUS
-    bool gameIsOn = false;
+    bool gameIsOn = true;
+
+    // TIMESTAMP
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    long int startTime = tp.tv_sec * 1000 + tp.tv_usec / 1000;
 
     /// MAIN LOOP
     while (true)
@@ -115,7 +121,10 @@ int main()
         ai.notify(gameIsOn, balls, communicator.isBallCaptured(), goalCenter);
 
         /// ASK AI WHAT TO DO
-        string command = ai.getCommand();
+        gettimeofday(&tp, NULL);
+        long int time = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+        string command = ai.getCommand(time - startTime);
+        startTime = tp.tv_sec * 1000 + tp.tv_usec / 1000;
 
         if (command.length())
         {
