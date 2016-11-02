@@ -91,12 +91,15 @@ string AI::getCommand(int dt)
                 float error = 0 - mTargetBall->distance.x;
                 mIntegral += error*dt;
                 float derivative = (error - mPreviousError)/dt;
-                float output = 1*error + 4*error + 1*derivative;
+                float output = 0.1*error + 0.4*error + 0.1*derivative;
                 mPreviousError = error;
 
                 cout << output << endl;
+                
+                return "sd"+itos(output)+":"+itos(output)+":"+itos(output)+":0";
 
 
+                /*
                 double angle = atan((double) mTargetBall->distance.x / (mTargetBall->distance.y + 20)) * 180 / 3.14159;
 
                 //cout << angle << endl;
@@ -128,6 +131,7 @@ string AI::getCommand(int dt)
                 if (angle > 0) {
                     return "sd" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":0";
                 }
+                 */
 
 
                 /*
