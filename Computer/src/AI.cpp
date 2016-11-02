@@ -71,12 +71,15 @@ string AI::getCommand()
                 return "sd7:7:7:0";
             } else {
                 int difference = 5;
-                if (mGoalCenter.x > IMAGE_HALF_WIDTH + difference && mGoalCenter.x < IMAGE_HALF_WIDTH - difference) {
+                if (mGoalCenter.x > IMAGE_HALF_WIDTH + difference)
+                {
                     return "sd5:5:5:0";
+                } else if (mGoalCenter.x < IMAGE_HALF_WIDTH - difference) {
+                    return "sd-5:-5:-5:0";
+                } else {
+                    return "sd0:0:0:0";
                 }
-
             }
-
             break;
         case GET_BALL_STATE:
             //cout << mTargetBall->center.x << endl;
