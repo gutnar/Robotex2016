@@ -84,7 +84,13 @@ string AI::getCommand(int dt)
                 } else if (mGoalCenter.x < IMAGE_HALF_WIDTH - difference)
                 {
                     return "sd-10:-10:-10:0";
-                } else if (mBallCaptured)
+                } else {
+                    mState = CHOOSE_BALL_STATE;
+                    return "d0\nk1000";
+                }
+
+                    /*
+                else if (mBallCaptured)
                 {
                     if (mKicked)
                     {
@@ -102,6 +108,7 @@ string AI::getCommand(int dt)
                 {
                     mState = CHOOSE_BALL_STATE;
                 }
+                     */
             }
             break;
         case GET_BALL_STATE:
