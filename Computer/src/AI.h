@@ -41,7 +41,8 @@ private:
     float mIntegral;
     float mPreviousError;
 
-    // Has the kick command been sent during a shoot state
+    // Has the dribbler been stopped and has the kick command been sent during a shoot state
+    bool mDribblerStopped;
     bool mKicked;
 };
 

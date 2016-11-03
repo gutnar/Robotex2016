@@ -34,16 +34,19 @@ Detector::Ball *AI::getClosestBall()
 
 string AI::getCommand(int dt)
 {
-    if (!mGameIsOn) {
+    if (!mGameIsOn)
+    {
         mState = IDLE_STATE;
     }
 
     switch (mState)
     {
         case IDLE_STATE:
-            if (mGameIsOn) {
+            if (mGameIsOn)
+            {
                 mState = CHOOSE_BALL_STATE;
-            } else {
+            } else
+            {
                 return "sd0:0:0:0\nd0";
             }
             break;
@@ -59,31 +62,44 @@ string AI::getCommand(int dt)
             }
             break;
         case FIND_BALLS_STATE:
-            if (mBalls.size()) {
+            if (mBalls.size())
+            {
                 mState = GET_BALL_STATE;
-            } else {
+            } else
+            {
                 return "sd10:10:10:0";
             }
             break;
         case SHOOT_STATE:
             // FIND GOAL
-            if (mGoalCenter.x == 0 && mGoalCenter.y == 0) {
+            if (mGoalCenter.x == 0 && mGoalCenter.y == 0)
+            {
                 return "sd10:10:10:0";
-            } else {
+            } else
+            {
                 int difference = 5;
                 if (mGoalCenter.x > IMAGE_HALF_WIDTH + difference)
                 {
                     return "sd10:10:10:0";
-                } else if (mGoalCenter.x < IMAGE_HALF_WIDTH - difference) {
+                } else if (mGoalCenter.x < IMAGE_HALF_WIDTH - difference)
+                {
                     return "sd-10:-10:-10:0";
-                } else if (mBallCaptured) {
-                    if (mKicked) {
+                } else if (mBallCaptured)
+                {
+                    if (mKicked)
+                    {
                         return "sd0:0:0:0";
-                    } else {
+                    } else if (!mDribblerStopped)
+                    {
+                        mDribblerStopped = true;
+                        return "d0";
+                    } else
+                    {
                         mKicked = true;
-                        return "d0\nk500";
+                        return "k1000";
                     }
-                } else {
+                } else
+                {
                     mState = CHOOSE_BALL_STATE;
                 }
             }
@@ -91,100 +107,47 @@ string AI::getCommand(int dt)
         case GET_BALL_STATE:
             mTargetBall = getClosestBall();
 
-            if (mTargetBall == NULL) {
+            if (mTargetBall == NULL)
+            {
                 mState = FIND_BALLS_STATE;
-            } else {
+            } else
+            {
                 // pid
                 float error = mTargetBall->distance.x;
-                mIntegral += error*dt;
-                float derivative = (error - mPreviousError)/dt;
-                float output = (0.05*error + 0.20*error + 0.05*derivative)*3;
+                mIntegral += error * dt;
+                float derivative = (error - mPreviousError) / dt;
+                float output = (0.05 * error + 0.20 * error + 0.05 * derivative) * 3;
                 mPreviousError = error;
 
                 float distance = sqrt(pow(mTargetBall->distance.x, 2) + pow(mTargetBall->distance.y, 2));
 
-                if (distance < 15) {
-                    if (abs(mTargetBall->distance.x) < 2) {
+                if (distance < 15)
+                {
+                    if (abs(mTargetBall->distance.x) < 2)
+                    {
                         mState = DRIBBLE_STATE;
-                    } else {
-                        return "sd" + itos(2*output) + ":" + itos(2*output) + ":" + itos(2*output) + ":0";
+                    } else
+                    {
+                        return "sd" + itos(2 * output) + ":" + itos(2 * output) + ":" + itos(2 * output) + ":0";
                     }
-                } else {
+                } else
+                {
                     return "sd" + itos(-20) + ":" + itos(20) + ":" + itos(output) + ":0";
                 }
 
                 /*
-                float forwardSpeed = 20;
-
-                if (mTargetBall->distance.y < 15 && mTargetBall->distance.x < 2) {
-                    mState = DRIBBLE_STATE;
-                }
-
-                else if (mTargetBall->distance.y < 20 && mTargetBall->distance.x < 20 && mTargetBall->distance.x > 2) {
-                    return "sd" + itos(2*output) + ":" + itos(2*output) + ":" + itos(2*output) + ":0";
-                }
-
-                else {
-                    return "sd" + itos(-forwardSpeed) + ":" + itos(forwardSpeed) + ":" + itos(output) + ":0";
-                    return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
-                }
-                 */
-
-
-                /*
                 double angle = atan((double) mTargetBall->distance.x / (mTargetBall->distance.y + 20)) * 180 / 3.14159;
-
-                //cout << angle << endl;
-
-                if (abs(mTargetBall->distance.x) < 4) {
-                    if (mTargetBall->distance.y < 10) {
-                        mState = DRIBBLE_STATE;
-                    } else if (mTargetBall->distance.y < 25) {
-                        return "sd-25:25:0:0";
-                    } else {
-                        if (mTargetBall->distance.x < -2) {
-                            return "sd-25:25:5:0";
-                        } else if (mTargetBall->distance.x > 2) {
-                            return "sd-25:25:-5:0";
-                        } else {
-                            return "sd-25:25:0:0";
-                        }
-                        //return "sd0:0:0:0";
-                    }
-
-                }
-
-                int turnSpeed = 2;// min((int) abs(angle), 10);
-
-                if (angle < 0) {
-                    return "sd-" + itos(turnSpeed) + ":-" + itos(turnSpeed) + ":-" + itos(turnSpeed) + ":0";
-                }
-
-                if (angle > 0) {
-                    return "sd" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":0";
-                }
-                 */
-
-
-                /*
-                    previous_error = 0
-                    integral = 0
-                    start:
-                      error = setpoint - measured_value
-                      integral = integral + error*dt
-                      derivative = (error - previous_error)/dt
-                      output = Kp*error + Ki*integral + Kd*derivative
-                      previous_error = error
-                      wait(dt)
-                      goto start
                  */
             }
             break;
         case DRIBBLE_STATE:
-            if (mBallCaptured) {
+            if (mBallCaptured)
+            {
+                mDribblerStopped = false;
                 mKicked = false;
                 mState = SHOOT_STATE;
-            } else {
+            } else
+            {
                 return "sd-7:7:0:0\nd1";
             }
             break;
