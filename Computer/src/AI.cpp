@@ -76,8 +76,11 @@ string AI::getCommand(int dt)
                     return "sd10:10:10:0";
                 } else if (mGoalCenter.x < IMAGE_HALF_WIDTH - difference) {
                     return "sd-10:-10:-10:0";
-                } else {
+                } else if (mBallCaptured) {
+                    return "k500";
                     return "sd0:0:0:0";
+                } else {
+                    mState = CHOOSE_BALL_STATE;
                 }
             }
             break;
@@ -97,7 +100,7 @@ string AI::getCommand(int dt)
                 float distance = sqrt(pow(mTargetBall->distance.x, 2) + pow(mTargetBall->distance.y, 2));
 
                 if (distance < 15) {
-                    if (mTargetBall->distance.x < 2) {
+                    if (abs(mTargetBall->distance.x) < 2) {
                         mState = DRIBBLE_STATE;
                     } else {
                         return "sd" + itos(2*output) + ":" + itos(2*output) + ":" + itos(2*output) + ":0";

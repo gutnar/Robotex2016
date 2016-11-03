@@ -89,6 +89,9 @@ int main()
     gettimeofday(&tp, NULL);
     long int startTime = tp.tv_sec * 1000 + tp.tv_usec / 1000;
 
+    // Start charging
+    communicator.sendCommand("c1");
+
     /// MAIN LOOP
     while (true)
     {
