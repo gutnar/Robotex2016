@@ -81,7 +81,7 @@ string AI::getCommand(int dt)
                         return "sd0:0:0:0";
                     } else {
                         mKicked = true;
-                        return "k500";
+                        return "d0\nk500";
                     }
                 } else {
                     mState = CHOOSE_BALL_STATE;
