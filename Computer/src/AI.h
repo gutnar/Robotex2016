@@ -40,6 +40,9 @@ private:
     // PID
     float mIntegral;
     float mPreviousError;
+
+    // Has the kick command been sent during a shoot state
+    bool mKicked;
 };
 
 
