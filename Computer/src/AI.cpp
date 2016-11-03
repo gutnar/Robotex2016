@@ -71,6 +71,18 @@ string AI::getCommand(int dt)
             }
             break;
         case SHOOT_STATE:
+            if (!mDribblerStopped) {
+                mDribblerStopped = true;
+                return "d0";
+            }
+
+            if (!mKicked) {
+                mKicked = true;
+                return "k750";
+            }
+
+            return "sd0:0:0:0";
+            /*
             // FIND GOAL
             if (mGoalCenter.x == 0 && mGoalCenter.y == 0)
             {
@@ -88,28 +100,8 @@ string AI::getCommand(int dt)
                     mState = CHOOSE_BALL_STATE;
                     return "d0\nk1000";
                 }
-
-                    /*
-                else if (mBallCaptured)
-                {
-                    if (mKicked)
-                    {
-                        return "sd0:0:0:0";
-                    } else if (!mDribblerStopped)
-                    {
-                        mDribblerStopped = true;
-                        return "d0";
-                    } else
-                    {
-                        mKicked = true;
-                        return "k1000";
-                    }
-                } else
-                {
-                    mState = CHOOSE_BALL_STATE;
-                }
-                     */
             }
+             */
             break;
         case GET_BALL_STATE:
             mTargetBall = getClosestBall();
@@ -150,14 +142,34 @@ string AI::getCommand(int dt)
         case DRIBBLE_STATE:
             if (mBallCaptured)
             {
-                mDribblerStopped = false;
-                mKicked = false;
-                mState = SHOOT_STATE;
+                mState = FIND_GOAL_STATE;
             } else
             {
                 return "sd-7:7:0:0\nd1";
             }
             break;
+        case FIND_GOAL_STATE:
+            if (mGoalCenter.x == 0 && mGoalCenter.y == 0)
+            {
+                return "sd10:10:10:0";
+            } else
+            {
+                int difference = 5;
+
+                if (mGoalCenter.x > IMAGE_HALF_WIDTH + difference)
+                {
+                    return "sd10:10:10:0";
+                } else if (mGoalCenter.x < IMAGE_HALF_WIDTH - difference)
+                {
+                    return "sd-10:-10:-10:0";
+                } else
+                {
+                    mDribblerStopped = false;
+                    mKicked = false;
+                    mState = SHOOT_STATE;
+                    return "sd0:0:0:0";
+                }
+            }
     }
 
     return getCommand(dt);
