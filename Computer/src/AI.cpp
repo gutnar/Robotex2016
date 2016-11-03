@@ -87,13 +87,26 @@ string AI::getCommand(int dt)
             if (mTargetBall == NULL) {
                 mState = FIND_BALLS_STATE;
             } else {
-                // pid test
+                // pid
                 float error = mTargetBall->distance.x;
                 mIntegral += error*dt;
                 float derivative = (error - mPreviousError)/dt;
                 float output = (0.05*error + 0.20*error + 0.05*derivative)*3;
                 mPreviousError = error;
 
+                float distance = sqrt(pow(mTargetBall->distance.x, 2) + pow(mTargetBall->distance.y, 2));
+
+                if (distance < 15) {
+                    if (mTargetBall->distance.x < 2) {
+                        mState = DRIBBLE_STATE;
+                    } else {
+                        return "sd" + itos(2*output) + ":" + itos(2*output) + ":" + itos(2*output) + ":0";
+                    }
+                } else {
+                    return "sd" + itos(-20) + ":" + itos(20) + ":" + itos(output) + ":0";
+                }
+
+                /*
                 float forwardSpeed = 20;
 
                 if (mTargetBall->distance.y < 15 && mTargetBall->distance.x < 2) {
@@ -108,6 +121,7 @@ string AI::getCommand(int dt)
                     return "sd" + itos(-forwardSpeed) + ":" + itos(forwardSpeed) + ":" + itos(output) + ":0";
                     return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
                 }
+                 */
 
 
                 /*
