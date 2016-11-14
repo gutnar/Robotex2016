@@ -247,25 +247,6 @@ string AI::getCommand(int dt)
                     output *= -1;
                 }
 
-                if (!mBallCaptured) {
-                    if (angle > 150)
-                    {
-                        return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
-                    }
-
-                    mDribblerRuntime += dt;
-
-                    if (mDribblerRuntime > 2000) {
-                        mDribblerRuntime = 0;
-                        mState = FIND_BALLS_STATE;
-                    } else
-                    {
-                        return "sd-25:25:25:0";
-                    }
-                }
-
-                mDribblerRuntime = 0;
-
                 if (angle > 25)
                 {
                     return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
