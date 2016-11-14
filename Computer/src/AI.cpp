@@ -218,6 +218,8 @@ string AI::getCommand(int dt)
                 float output = (0.05 * angle + 0.20 * angle + 0.05 * derivative) * 3;
                 mPreviousError = angle;
 
+                cout << angle << endl;
+
                 if (angle > 5)
                 {
                     return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";

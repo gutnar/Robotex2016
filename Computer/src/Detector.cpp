@@ -179,7 +179,8 @@ Point Detector::findGoal(Mat &srcImage, string color) {
 
         //line(srcImage, Point())
         line(srcImage, Point(center.x, 0), Point(center.x, IMAGE_HEIGHT), Scalar(0, 255, 255), 1);
-        
+        imshow("goal", srcImage);
+
         // Test
         //drawContours(filteredImage, contours, largestContourIndex, blue, 1);
 
