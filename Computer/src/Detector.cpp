@@ -102,11 +102,9 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         ball.center = Point(sumX/contourSize, sumY/contourSize);
 
         /// CHECK IF BALL IS WITHIN BORDERS
-        /*
         if (!isBallWithinBorders(srcImage, ball)) {
             continue;
         }
-         */
 
         // x-distance positive when ball on right half and negative when on left half
         ball.distance = Point(round(DISTANCE_C*(ball.center.x - IMAGE_HALF_WIDTH)/maxY), round(DISTANCE_A + DISTANCE_B/maxY));
@@ -115,11 +113,9 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         float rightDistance = (DISTANCE_C*(maxX - IMAGE_HALF_WIDTH)/maxY);
         float width = rightDistance - leftDistance;
 
-        /*
         if (width < 3 || width > 5) {
             continue;
         }
-         */
 
         drawContours(srcImage, contours, i, blue, 1);
         //putText(srcImage, itos(IMAGE_HEIGHT - maxY), Point(ball.center.x + 50, ball.center.y), 1, 1, white);

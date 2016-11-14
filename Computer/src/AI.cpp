@@ -81,20 +81,26 @@ string AI::getCommand(int dt)
             }
 
             if (!mKicked) {
+                mKicked = true;
+                mState = CHOOSE_BALL_STATE;
+                return "k1000\nd0\nsd0:0:0:0";
+
+                /*
                 mDribblerRuntime += dt;
 
-                if (mDribblerRuntime > 100) {
+                if (mDribblerRuntime > 0) {
                     mKicked = true;
                     mDribblerRuntime = 0;
                     return "k750";
                 } else {
                     return "sd0:0:0:0";
                 }
+                 */
             }
 
             mDribblerRuntime += dt;
 
-            if (mDribblerRuntime > 500)
+            if (mDribblerRuntime > 1000)
             {
                 mDribblerRuntime = 0;
                 mState = CHOOSE_BALL_STATE;
@@ -159,12 +165,8 @@ string AI::getCommand(int dt)
             }
             break;
         case DRIBBLE_STATE:
-            //if (mBallCaptured)
-            mDribblerRuntime += dt;
-
-            if (mDribblerRuntime > 4000)
+            if (mBallCaptured)
             {
-                mDribblerRuntime = 0;
                 mState = FIND_GOAL_STATE;
             } else
             {
@@ -175,34 +177,26 @@ string AI::getCommand(int dt)
             if (mGoalCenter.x == 0 && mGoalCenter.y == 0)
             {
                 if (mGoalWasLeft) {
-                    return "sd10:10:10:0";
-                } else {
                     return "sd-10:-10:-10:0";
+                } else {
+                    return "sd10:10:10:0";
                 }
             } else
             {
                 int difference = 5;
 
-                if (!mDribblerRuntime && mGoalCenter.x > IMAGE_HALF_WIDTH + difference)
+                if (mGoalCenter.x > IMAGE_HALF_WIDTH + difference)
                 {
                     return "sd10:10:10:0";
-                } else if (!mDribblerRuntime && mGoalCenter.x < IMAGE_HALF_WIDTH - difference)
+                } else if (mGoalCenter.x < IMAGE_HALF_WIDTH - difference)
                 {
                     return "sd-10:-10:-10:0";
                 } else
                 {
-                    mDribblerRuntime += dt;
-
-                    if (mDribblerRuntime > 2000)
-                    {
-                        mDribblerRuntime = 0;
-                        mDribblerStopped = false;
-                        mKicked = false;
-                        mState = SHOOT_STATE;
-                        return "sd0:0:0:0";
-                    } else {
-                        return "sd-5:5:0:0";
-                    }
+                    mDribblerStopped = false;
+                    mKicked = false;
+                    mState = SHOOT_STATE;
+                    return "sd0:0:0:0";
                 }
             }
     }
