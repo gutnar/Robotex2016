@@ -50,8 +50,8 @@ void Detector::filterColor(Mat &srcImage, Mat &dstImage, string color) {
     }
 
     // Filters workedImage according to a color
-    inRange(srcImage, Scalar(values[0], values[2], 0), Scalar(values[1], values[3], 255), dstImage);
-    //inRange(srcImage, Scalar(values[0], values[2], values[4]), Scalar(values[1], values[3], values[5]), dstImage);
+    //inRange(srcImage, Scalar(values[0], values[2], 0), Scalar(values[1], values[3], 255), dstImage);
+    inRange(srcImage, Scalar(values[0], values[2], values[4]), Scalar(values[1], values[3], values[5]), dstImage);
 
     // Erode
     erode(dstImage, dstImage, getStructuringElement(MORPH_ELLIPSE, Size(10, 10), Point(0, 0)));
