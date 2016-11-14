@@ -175,14 +175,16 @@ Point Detector::findGoal(Mat &srcImage, string color) {
 
         // Center  coordinates
         Point center((maxX-minX)/2 + minX, (maxY-minY)/2 + minY);
-        circle(filteredImage, center, 5, blue);
+        //circle(filteredImage, center, 5, blue);
 
+        //line(srcImage, Point())
+        line(srcImage, Point(center.x, 0), Point(center.x, IMAGE_HEIGHT), Scalar(0, 255, 255), 1);
+        
         // Test
-        drawContours(filteredImage, contours, largestContourIndex, blue, 1);
+        //drawContours(filteredImage, contours, largestContourIndex, blue, 1);
 
         // Display
         //namedWindow("test");
-        //imshow("test", filteredImage);
 
         return center;
     }
