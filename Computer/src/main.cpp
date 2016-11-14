@@ -41,7 +41,7 @@ int main() {
         int productId = atoi(configuration.GetValue("motherboard", "PRODUCT_ID", "0"));
         communicator.connect(vendorId, productId);
          */
-        communicator.connect("/dev/ttyACM1");
+        communicator.connect("/dev/ttyACM2");
     } catch (int exception) {
         cout << "Could not create serial connection to motherboard!" << endl;
         //return 0;
