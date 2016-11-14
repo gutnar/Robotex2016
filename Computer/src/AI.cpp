@@ -184,6 +184,8 @@ string AI::getCommand(int dt)
         case FIND_GOAL_STATE:
             if (mGoalCenter.x == 0 && mGoalCenter.y == 0)
             {
+                mIntegral = 0;
+
                 if (mGoalWasLeft) {
                     return "sd-10:-10:-10:0";
                 } else {
@@ -191,6 +193,7 @@ string AI::getCommand(int dt)
                 }
             } else
             {
+                /*
                 int difference = 5;
 
                 if (mGoalCenter.x > IMAGE_HALF_WIDTH + difference)
@@ -206,6 +209,27 @@ string AI::getCommand(int dt)
                     mState = SHOOT_STATE;
                     return "sd0:0:0:0";
                 }
+                 */
+
+                // pid
+                double angle = 180/3.14159*atan(mGoalCenter.y/mGoalCenter.y);
+                mIntegral += angle * dt;
+                float derivative = (angle - mPreviousError) / dt;
+                float output = (0.05 * angle + 0.20 * angle + 0.05 * derivative) * 3;
+                mPreviousError = angle;
+
+                if (angle > 5)
+                {
+                    return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
+                } else
+                {
+                    mIntegral = 0;
+                    mDribblerStopped = false;
+                    mKicked = false;
+                    mState = SHOOT_STATE;
+                    return "sd0:0:0:0";
+                }
+
             }
     }
 
