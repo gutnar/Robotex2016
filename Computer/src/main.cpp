@@ -127,6 +127,7 @@ int main()
         ai.notify(gameIsOn, balls, communicator.isBallCaptured(), goalCenter);
 
         /// ASK AI WHAT TO DO
+        /*
         gettimeofday(&tp, NULL);
         long int time = tp.tv_sec * 1000 + tp.tv_usec / 1000;
         string command = ai.getCommand(time - startTime);
@@ -137,6 +138,18 @@ int main()
             //communicator.sendCommand("red");
             communicator.sendCommand(command);
         }
+         */
+
+        /// TEST
+        for (int x = 0; x < IMAGE_WIDTH; ++x) {
+            int y = detector.findBorder(workedImage, x);
+
+            for (int j = y; j < IMAGE_HEIGHT; ++j) {
+                image.at<Vec3b>(j, x) = Vec3b(0, 0, 0);
+            }
+        }
+
+        imshow("test", image);
 
         // Close when pressing space or esc
         if (waitKey(30) > 0)

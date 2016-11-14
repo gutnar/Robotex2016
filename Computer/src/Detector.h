@@ -27,6 +27,7 @@ public:
     Point findGoal(Mat &srcImage, string color);
     vector<Ball> findBalls(Mat &srcImage);
     bool isBallWithinBorders(Mat &srcImage, Detector::Ball ball);
+    int findBorder(Mat &srcImage, int x);
 
     void onMouse(int event, int x, int y);
     static void mouseEventHandler(int event, int x, int y, int, void* userdata);

@@ -198,45 +198,95 @@ bool Detector::isBallWithinBorders(Mat &srcImage, Detector::Ball ball)
     //cout << "hello" << endl;
 
     //for (int x = 0; x < srcImage.cols; ++x) {
-        int sequentialWhitePixels = 0;
-        int sequentialBlackPixels = 0;
-        int sequentialOtherPixels = 0;
+    int sequentialWhitePixels = 0;
+    int sequentialBlackPixels = 0;
+    int sequentialOtherPixels = 0;
 
-        for (int y = srcImage.rows - 1; y > ball.center.y; --y) {
-            Vec3b pixel = srcImage.at<Vec3b>(y, ball.center.x);
+    for (int y = srcImage.rows - 1; y > ball.center.y; --y) {
+        Vec3b pixel = srcImage.at<Vec3b>(y, ball.center.x);
 
-            //cout << pixel[0] << " " << pixel[1] << " " << pixel[2] << endl;
+        //cout << pixel[0] << " " << pixel[1] << " " << pixel[2] << endl;
 
-            if (isPixelInColorRange(pixel, mWhite)) {
-                sequentialWhitePixels++;
-                sequentialBlackPixels = 0;
-                sequentialOtherPixels = 0;
-            } else if (isPixelInColorRange(pixel, mBlack)) {
-                sequentialBlackPixels++;
-                sequentialOtherPixels = 0;
-            } else {
-                // TODO: ball on border
-                //srcImage.at<Vec3b>(y, ball.center.x) = Vec3b(255, 0, 255);
+        if (isPixelInColorRange(pixel, mWhite)) {
+            sequentialWhitePixels++;
+            sequentialBlackPixels = 0;
+            sequentialOtherPixels = 0;
+        } else if (isPixelInColorRange(pixel, mBlack)) {
+            sequentialBlackPixels++;
+            sequentialOtherPixels = 0;
+        } else {
+            // TODO: ball on border
+            //srcImage.at<Vec3b>(y, ball.center.x) = Vec3b(255, 0, 255);
 
-                if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2)
-                {
-                    return false;
-                    cout << sequentialWhitePixels << " " << sequentialBlackPixels << endl;
-                    break;
-                }
+            if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2)
+            {
+                return false;
+                cout << sequentialWhitePixels << " " << sequentialBlackPixels << endl;
+                break;
+            }
 
-                if (++sequentialOtherPixels > 2)
-                {
-                    sequentialWhitePixels = 0;
-                    sequentialWhitePixels = 0;
-                }
+            if (++sequentialOtherPixels > 2)
+            {
+                sequentialWhitePixels = 0;
+                sequentialWhitePixels = 0;
             }
         }
+    }
     //}
 
     //imshow("detector", srcImage);
 
     return true;
+}
+
+int Detector::findBorder(Mat &srcImage, int x)
+{
+    //Mat filteredImage;
+    //filterColor(srcImage, filteredImage, "BLACK");
+    //imshow("detector", srcImage);
+
+    //cout << "hello" << endl;
+
+    //for (int x = 0; x < srcImage.cols; ++x) {
+    int sequentialWhitePixels = 0;
+    int sequentialBlackPixels = 0;
+    int sequentialOtherPixels = 0;
+
+    for (int y = srcImage.rows - 1; y >= 0; --y) {
+        Vec3b pixel = srcImage.at<Vec3b>(y, x);
+
+        //cout << pixel[0] << " " << pixel[1] << " " << pixel[2] << endl;
+
+        if (isPixelInColorRange(pixel, mWhite)) {
+            sequentialWhitePixels++;
+            sequentialBlackPixels = 0;
+            sequentialOtherPixels = 0;
+        } else if (isPixelInColorRange(pixel, mBlack)) {
+            sequentialBlackPixels++;
+            sequentialOtherPixels = 0;
+        } else {
+            // TODO: ball on border
+            //srcImage.at<Vec3b>(y, ball.center.x) = Vec3b(255, 0, 255);
+
+            if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2)
+            {
+                return y;
+                cout << sequentialWhitePixels << " " << sequentialBlackPixels << endl;
+                break;
+            }
+
+            if (++sequentialOtherPixels > 2)
+            {
+                sequentialWhitePixels = 0;
+                sequentialWhitePixels = 0;
+            }
+        }
+    }
+    //}
+
+    //imshow("detector", srcImage);
+
+    return -1;
 }
 
 bool Detector::isPixelInColorRange(Vec3b pixel, int *color)
