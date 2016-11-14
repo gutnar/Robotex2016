@@ -220,11 +220,19 @@ string AI::getCommand(int dt)
 
                 cout << angle << endl;
 
+                /*
                 if (angle < IMAGE_HALF_WIDTH) {
                     output *= -1;
                 }
+                 */
 
-                if (angle > 10)
+                if (angle < IMAGE_HALF_WIDTH && output < 0) {
+                    output *= -1;
+                } else if (angle > IMAGE_HALF_WIDTH && output > 0) {
+                    output *= -1;
+                }
+
+                if (angle > 5)
                 {
                     return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
                 } else
