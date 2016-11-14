@@ -212,7 +212,7 @@ string AI::getCommand(int dt)
                  */
 
                 // pid
-                double angle = 180/3.14159*atan(mGoalCenter.x/mGoalCenter.y);
+                double angle = mGoalCenter.x;//180/3.14159*atan(mGoalCenter.x/mGoalCenter.y);
                 mIntegral += angle * dt;
                 float derivative = (angle - mPreviousError) / dt;
                 float output = (0.05 * angle + 0.20 * angle + 0.05 * derivative) * 3;
@@ -220,7 +220,7 @@ string AI::getCommand(int dt)
 
                 cout << angle << endl;
 
-                if (angle > 5)
+                if (angle > 10)
                 {
                     return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
                 } else
