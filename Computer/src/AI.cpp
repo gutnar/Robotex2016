@@ -66,8 +66,16 @@ string AI::getCommand(int dt)
             }
             break;
         case FIND_BALLS_STATE:
+            mDribblerRuntime += dt;
+
+            if (mDribblerRuntime > 4000) {
+                mDribblerRuntime = 0;
+                mState = FIND_GOAL_STATE;
+            }
+
             if (mBalls.size())
             {
+                mDribblerRuntime = 0;
                 mState = GET_BALL_STATE;
             } else
             {
@@ -224,9 +232,9 @@ string AI::getCommand(int dt)
                 }
                  */
 
-                if (mGoalCenter.x < IMAGE_HALF_WIDTH && output < 0) {
+                if (mGoalCenter.x < IMAGE_HALF_WIDTH && output > 0) {
                     output *= -1;
-                } else if (mGoalCenter.x > IMAGE_HALF_WIDTH && output > 0) {
+                } else if (mGoalCenter.x > IMAGE_HALF_WIDTH && output < 0) {
                     output *= -1;
                 }
 
@@ -236,9 +244,24 @@ string AI::getCommand(int dt)
                 } else
                 {
                     mIntegral = 0;
-                    mDribblerStopped = false;
-                    mKicked = false;
-                    mState = SHOOT_STATE;
+
+                    if (mBallCaptured)
+                    {
+                        mDribblerStopped = false;
+                        mKicked = false;
+                        mState = SHOOT_STATE;
+                    } else {
+                        mDribblerRuntime += dt;
+
+                        if (mDribblerRuntime > 2000) {
+                            mDribblerRuntime = 0;
+                            mState = FIND_BALLS_STATE;
+                        } else
+                        {
+                            return "sd-10:10:0:0";
+                        }
+                    }
+
                     return "sd0:0:0:0";
                 }
 
