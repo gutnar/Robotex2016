@@ -212,10 +212,10 @@ string AI::getCommand(int dt)
                  */
 
                 // pid
-                double angle = mGoalCenter.x;//180/3.14159*atan(mGoalCenter.x/mGoalCenter.y);
+                double angle = mGoalCenter.x - IMAGE_HALF_WIDTH;//180/3.14159*atan(mGoalCenter.x/mGoalCenter.y);
                 mIntegral += angle * dt;
                 float derivative = (angle - mPreviousError) / dt;
-                float output = (0.05 * angle + 0.20 * angle + 0.05 * derivative) * 3;
+                float output = (0.05 * angle + 0.20 * angle + 0.05 * derivative) / 5;
                 mPreviousError = angle;
 
                 cout << angle << endl;
