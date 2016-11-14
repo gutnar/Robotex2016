@@ -68,7 +68,7 @@ string AI::getCommand(int dt)
         case FIND_BALLS_STATE:
             mDribblerRuntime += dt;
 
-            if (mDribblerRuntime > 4000) {
+            if (mDribblerRuntime > 5000) {
                 mDribblerRuntime = 0;
                 mState = FIND_GOAL_STATE;
             }
@@ -258,7 +258,7 @@ string AI::getCommand(int dt)
                             mState = FIND_BALLS_STATE;
                         } else
                         {
-                            return "sd-10:10:0:0";
+                            return "sd-25:25:25:0";
                         }
                     }
 
