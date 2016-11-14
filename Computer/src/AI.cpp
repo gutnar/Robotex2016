@@ -148,7 +148,7 @@ string AI::getCommand(int dt)
             //if (mBallCaptured)
             mDribblerRuntime += dt;
 
-            if (mDribblerRuntime > 3000)
+            if (mDribblerRuntime > 4000)
             {
                 mDribblerRuntime = 0;
                 mState = FIND_GOAL_STATE;
@@ -177,10 +177,18 @@ string AI::getCommand(int dt)
                     return "sd-10:-10:-10:0";
                 } else
                 {
-                    mDribblerStopped = false;
-                    mKicked = false;
-                    mState = SHOOT_STATE;
-                    return "sd0:0:0:0";
+                    mDribblerRuntime += dt;
+
+                    if (mDribblerRuntime > 1000)
+                    {
+                        mDribblerRuntime = 0;
+                        mDribblerStopped = false;
+                        mKicked = false;
+                        mState = SHOOT_STATE;
+                        return "sd0:0:0:0";
+                    } else {
+                        return "sd-5:5:0:0";
+                    }
                 }
             }
     }
