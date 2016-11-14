@@ -170,6 +170,13 @@ string AI::getCommand(int dt)
                 mState = FIND_GOAL_STATE;
             } else
             {
+                mDribblerRuntime += dt;
+
+                if (mDribblerRuntime > 3000) {
+                    mDribblerRuntime = 0;
+                    mState = CHOOSE_BALL_STATE;
+                }
+
                 return "sd-7:7:0:0\nd1";
             }
             break;
