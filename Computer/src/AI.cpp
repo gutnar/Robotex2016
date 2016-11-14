@@ -308,7 +308,7 @@ string AI::getCommand(int dt)
                 mState = FIND_BALLS_STATE;
             } else
             {
-                return "sd-25:25:25:0";
+                return "sd-25:25:0:0";
             }
     }
 
