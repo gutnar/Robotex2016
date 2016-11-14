@@ -81,8 +81,15 @@ string AI::getCommand(int dt)
             }
 
             if (!mKicked) {
-                mKicked = true;
-                return "k750";
+                mDribblerRuntime += dt;
+
+                if (mDribblerRuntime > 500) {
+                    mKicked = true;
+                    mDribblerRuntime = 0;
+                    return "k750";
+                } else {
+                    return "sd0:0:0:0";
+                }
             }
 
             mState = CHOOSE_BALL_STATE;
@@ -169,17 +176,17 @@ string AI::getCommand(int dt)
             {
                 int difference = 5;
 
-                if (mGoalCenter.x > IMAGE_HALF_WIDTH + difference)
+                if (!mDribblerRuntime && mGoalCenter.x > IMAGE_HALF_WIDTH + difference)
                 {
                     return "sd10:10:10:0";
-                } else if (mGoalCenter.x < IMAGE_HALF_WIDTH - difference)
+                } else if (!mDribblerRuntime && mGoalCenter.x < IMAGE_HALF_WIDTH - difference)
                 {
                     return "sd-10:-10:-10:0";
                 } else
                 {
                     mDribblerRuntime += dt;
 
-                    if (mDribblerRuntime > 1000)
+                    if (mDribblerRuntime > 2000)
                     {
                         mDribblerRuntime = 0;
                         mDribblerStopped = false;
