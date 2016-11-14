@@ -218,8 +218,6 @@ string AI::getCommand(int dt)
                 float output = (0.05 * angle + 0.20 * angle + 0.05 * derivative) / 5;
                 mPreviousError = angle;
 
-                cout << angle << endl;
-
                 /*
                 if (angle < IMAGE_HALF_WIDTH) {
                     output *= -1;
@@ -232,7 +230,7 @@ string AI::getCommand(int dt)
                     output *= -1;
                 }
 
-                if (angle > 5)
+                if (angle > 25)
                 {
                     return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
                 } else
