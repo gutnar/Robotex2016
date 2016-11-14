@@ -21,8 +21,10 @@ public:
     void calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color);
     void onMouse(int event, int x, int y);
     static void mouseEventHandler(int event, int x, int y, int, void* userdata);
+    void setCalibrationSrc(Mat image);
 private:
     Mat mCalibrationSrc;
+    bool mCalibrationSrcOverwritten;
     vector< vector<Point> > mPolygons;
     string mWindowName;
 };

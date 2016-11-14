@@ -97,9 +97,9 @@ int isCircular(vector<Point> contour)
 }
 
 void Calibrator::calibrate(VideoCapture cap, CSimpleIniA *ini) {
-    string colors[2] = {"ORANGE", "BLUE"};
+    string colors[4] = {"ORANGE", "BLUE", "BLACK", "WHITE"};
 
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 4; ++i) {
         calibrateColor(cap, ini, colors[i]);
     }
 }
@@ -113,19 +113,28 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
     } else if (color == "BLUE")
     {
         mWindowName = "Calibrate blue";
+    } else if (color == "BLACK")
+    {
+        mWindowName = "Calibrate black";
+    } else if (color == "WHITE")
+    {
+        mWindowName = "Calibrate white";
     }
 
     // Get view
     namedWindow(mWindowName);
 
-    while (1)
+    if (!mCalibrationSrcOverwritten)
     {
-        cap >> mCalibrationSrc;
-        imshow(mWindowName, mCalibrationSrc);
-
-        if (waitKey(30) > 0)
+        while (1)
         {
-            break;
+            cap >> mCalibrationSrc;
+            imshow(mWindowName, mCalibrationSrc);
+
+            if (waitKey(30) > 0)
+            {
+                break;
+            }
         }
     }
 
@@ -282,4 +291,10 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
     ini->SetValue(color.c_str(), "S_MAX", itos(range[1][1]).c_str());
     ini->SetValue(color.c_str(), "V_MIN", itos(range[2][0]).c_str());
     ini->SetValue(color.c_str(), "V_MAX", itos(range[2][1]).c_str());
+}
+
+void Calibrator::setCalibrationSrc(Mat image)
+{
+    mCalibrationSrc = image;
+    mCalibrationSrcOverwritten = true;
 }
