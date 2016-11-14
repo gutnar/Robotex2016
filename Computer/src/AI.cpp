@@ -232,9 +232,9 @@ string AI::getCommand(int dt)
                 }
                  */
 
-                if (mGoalCenter.x < IMAGE_HALF_WIDTH && output < 0) {
+                if (mGoalCenter.x < IMAGE_HALF_WIDTH && output > 0) {
                     output *= -1;
-                } else if (mGoalCenter.x > IMAGE_HALF_WIDTH && output > 0) {
+                } else if (mGoalCenter.x > IMAGE_HALF_WIDTH && output < 0) {
                     output *= -1;
                 }
 
