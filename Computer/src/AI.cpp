@@ -15,6 +15,10 @@ void AI::notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured,
     mBalls = balls;
     mBallCaptured = ballCaptured;
     mGoalCenter = goalCenter;
+
+    if (goalCenter.x != 0 && goalCenter.y != 0) {
+        mGoalWasLeft = goalCenter.x < IMAGE_HALF_WIDTH;
+    }
 }
 
 Detector::Ball *AI::getClosestBall()
@@ -81,6 +85,7 @@ string AI::getCommand(int dt)
                 return "k750";
             }
 
+            mState = CHOOSE_BALL_STATE;
             return "sd0:0:0:0";
             /*
             // FIND GOAL
@@ -140,8 +145,12 @@ string AI::getCommand(int dt)
             }
             break;
         case DRIBBLE_STATE:
-            if (mBallCaptured)
+            //if (mBallCaptured)
+            mDribblerRuntime += dt;
+
+            if (mDribblerRuntime > 3000)
             {
+                mDribblerRuntime = 0;
                 mState = FIND_GOAL_STATE;
             } else
             {
@@ -151,7 +160,11 @@ string AI::getCommand(int dt)
         case FIND_GOAL_STATE:
             if (mGoalCenter.x == 0 && mGoalCenter.y == 0)
             {
-                return "sd10:10:10:0";
+                if (mGoalWasLeft) {
+                    return "sd10:10:10:0";
+                } else {
+                    return "sd-10:-10:-10:0";
+                }
             } else
             {
                 int difference = 5;

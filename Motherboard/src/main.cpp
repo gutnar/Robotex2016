@@ -82,6 +82,10 @@ void endDischarging() {
   }
 }
 
+// Ball detector status
+// TODO: back into main function
+int infraredStatus = -1;
+
 void pidTick() {
   for (int i = 0; i < NUMBER_OF_MOTORS; i++) {
     motors[i].pidTick();
@@ -119,9 +123,6 @@ int main() {
   // Dribbler motor
   pwm1.period_us(400);
   pwm1.pulsewidth_us(100);
-
-  // Ball detector status
-  int infraredStatus = -1;
 
   while (1) {
     if (serial.readable()) {

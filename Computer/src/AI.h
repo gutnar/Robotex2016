@@ -44,6 +44,12 @@ private:
     // Has the dribbler been stopped and has the kick command been sent during a shoot state
     bool mDribblerStopped;
     bool mKicked;
+
+    // How long has the dribbler been running
+    int mDribblerRuntime;
+
+    // Where was the goal last seen
+    bool mGoalWasLeft;
 };
 
 
