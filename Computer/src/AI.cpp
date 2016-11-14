@@ -175,6 +175,7 @@ string AI::getCommand(int dt)
                 if (mDribblerRuntime > 3000) {
                     mDribblerRuntime = 0;
                     mState = CHOOSE_BALL_STATE;
+                    return "d0";
                 }
 
                 return "sd-7:7:0:0\nd1";
