@@ -23,9 +23,18 @@ void Detector::mouseEventHandler(int event, int x, int y, int flags, void *userd
 
 // Constructor
 Detector::Detector(CSimpleIniA &configurationIni, CSimpleIniA &colorsIni) {
-    //Pointers
+    // Pointers
     mConfigurationIni = &configurationIni;
     mColorsIni = &colorsIni;
+
+    // Color ranges
+    string keys[6] = {"H_MIN","H_MAX","S_MIN","S_MAX","V_MIN","V_MAX"};
+
+    for (int i = 0; i < 6; ++i)
+    {
+        mWhite[i] = atoi(mColorsIni->GetValue("WHITE", keys[i].c_str(), NULL));
+        mBlack[i] = atoi(mColorsIni->GetValue("BLACK", keys[i].c_str(), NULL));
+    }
 
     //namedWindow("test");
     //setMouseCallback("test", mouseEventHandler, this);
@@ -42,6 +51,7 @@ void Detector::filterColor(Mat &srcImage, Mat &dstImage, string color) {
 
     // Filters workedImage according to a color
     inRange(srcImage, Scalar(values[0], values[2], 0), Scalar(values[1], values[3], 255), dstImage);
+    //inRange(srcImage, Scalar(values[0], values[2], values[4]), Scalar(values[1], values[3], values[5]), dstImage);
 
     // Erode
     erode(dstImage, dstImage, getStructuringElement(MORPH_ELLIPSE, Size(10, 10), Point(0, 0)));
@@ -90,6 +100,12 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         }
 
         ball.center = Point(sumX/contourSize, sumY/contourSize);
+
+        /// CHECK IF BALL IS WITHIN BORDERS
+        if (!isBallWithinBorders(srcImage, ball)) {
+            continue;
+        }
+
         // x-distance positive when ball on right half and negative when on left half
         ball.distance = Point(round(DISTANCE_C*(ball.center.x - IMAGE_HALF_WIDTH)/maxY), round(DISTANCE_A + DISTANCE_B/maxY));
 
@@ -172,3 +188,63 @@ Point Detector::findGoal(Mat &srcImage, string color) {
 
     return Point(0, 0);
 }
+
+bool Detector::isBallWithinBorders(Mat &srcImage, Detector::Ball ball)
+{
+    //Mat filteredImage;
+    //filterColor(srcImage, filteredImage, "BLACK");
+    //imshow("detector", srcImage);
+
+    //cout << "hello" << endl;
+
+    //for (int x = 0; x < srcImage.cols; ++x) {
+        int sequentialWhitePixels = 0;
+        int sequentialBlackPixels = 0;
+        int sequentialOtherPixels = 0;
+
+        for (int y = srcImage.rows - 1; y > ball.center.y; --y) {
+            Vec3b pixel = srcImage.at<Vec3b>(y, ball.center.x);
+
+            //cout << pixel[0] << " " << pixel[1] << " " << pixel[2] << endl;
+
+            if (isPixelInColorRange(pixel, mWhite)) {
+                sequentialWhitePixels++;
+                sequentialBlackPixels = 0;
+                sequentialOtherPixels = 0;
+            } else if (isPixelInColorRange(pixel, mBlack)) {
+                sequentialBlackPixels++;
+                sequentialOtherPixels = 0;
+            } else {
+                // TODO: ball on border
+                //srcImage.at<Vec3b>(y, ball.center.x) = Vec3b(255, 0, 255);
+
+                if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2)
+                {
+                    return false;
+                    cout << sequentialWhitePixels << " " << sequentialBlackPixels << endl;
+                    break;
+                }
+
+                if (++sequentialOtherPixels > 2)
+                {
+                    sequentialWhitePixels = 0;
+                    sequentialWhitePixels = 0;
+                }
+            }
+        }
+    //}
+
+    //imshow("detector", srcImage);
+
+    return true;
+}
+
+bool Detector::isPixelInColorRange(Vec3b pixel, int *color)
+{
+    if (pixel[0] < color[0] || pixel[0] > color[1]) return false;
+    if (pixel[1] < color[2] || pixel[1] > color[3]) return false;
+    if (pixel[2] < color[4] || pixel[2] > color[5]) return false;
+
+    return true;
+}
+

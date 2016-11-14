@@ -26,12 +26,18 @@ public:
     void filterColor(Mat &srcImage, Mat &dstImage, string color);
     Point findGoal(Mat &srcImage, string color);
     vector<Ball> findBalls(Mat &srcImage);
+    bool isBallWithinBorders(Mat &srcImage, Detector::Ball ball);
 
     void onMouse(int event, int x, int y);
     static void mouseEventHandler(int event, int x, int y, int, void* userdata);
 private:
     CSimpleIniA *mConfigurationIni;
     CSimpleIniA *mColorsIni;
+
+    int mWhite[6];
+    int mBlack[6];
+
+    bool isPixelInColorRange(Vec3b pixel, int color[6]);
 };
 
 
