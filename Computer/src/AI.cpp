@@ -228,8 +228,8 @@ string AI::getCommand(int dt)
                     mIntegral = 0;
                     mDribblerStopped = false;
                     mKicked = false;
-                    mState = SHOOT_STATE;
-                    return "sd0:0:0:0";
+                    //mState = SHOOT_STATE;
+                    return "sd0:0:0:0\nd0";
                 }
 
             }
