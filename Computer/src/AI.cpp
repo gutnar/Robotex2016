@@ -72,7 +72,7 @@ string AI::getCommand(int dt)
             if (mDribblerRuntime > 5000)
             {
                 mDribblerRuntime = 0;
-                mState = FIND_GOAL_STATE;
+                mState = MOVE_TOWARDS_GOAL_STATE;
             }
 
             if (mBalls.size())
@@ -260,6 +260,55 @@ string AI::getCommand(int dt)
                     return "sd0:0:0:0";
                 }
 
+            }
+        case MOVE_TOWARDS_GOAL_STATE:
+            if (mGoalCenter.x == 0 && mGoalCenter.y == 0)
+            {
+                mIntegral = 0;
+
+                if (mGoalWasLeft)
+                {
+                    return "sd-10:-10:-10:0";
+                } else
+                {
+                    return "sd10:10:10:0";
+                }
+            }
+
+            // pid
+            double angle = abs(mGoalCenter.x - IMAGE_HALF_WIDTH);//180/3.14159*atan(mGoalCenter.x/mGoalCenter.y);
+            mIntegral += angle * dt;
+            float derivative = (angle - mPreviousError) / dt;
+            float output = (0.05 * angle + 0.20 * angle + 0.05 * derivative) / 5;
+            mPreviousError = angle;
+
+            /*
+            if (angle < IMAGE_HALF_WIDTH) {
+                output *= -1;
+            }
+             */
+
+            if (mGoalCenter.x < IMAGE_HALF_WIDTH && output > 0)
+            {
+                output *= -1;
+            } else if (mGoalCenter.x > IMAGE_HALF_WIDTH && output < 0)
+            {
+                output *= -1;
+            }
+
+            if (!mDribblerRuntime && angle > 100)
+            {
+                return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
+            }
+
+            mDribblerRuntime += dt;
+
+            if (mDribblerRuntime > 2000) {
+                mDribblerRuntime = 0;
+                mState = FIND_BALLS_STATE;
+            } else
+            {
+                return "sd-25:25:25:0";
             }
     }
 
