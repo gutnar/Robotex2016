@@ -83,7 +83,7 @@ string AI::getCommand(int dt)
             if (!mKicked) {
                 mDribblerRuntime += dt;
 
-                if (mDribblerRuntime > 500) {
+                if (mDribblerRuntime > 100) {
                     mKicked = true;
                     mDribblerRuntime = 0;
                     return "k750";
@@ -92,7 +92,14 @@ string AI::getCommand(int dt)
                 }
             }
 
-            mState = CHOOSE_BALL_STATE;
+            mDribblerRuntime += dt;
+
+            if (mDribblerRuntime > 500)
+            {
+                mDribblerRuntime = 0;
+                mState = CHOOSE_BALL_STATE;
+            }
+
             return "sd0:0:0:0";
             /*
             // FIND GOAL
