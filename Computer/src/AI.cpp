@@ -296,7 +296,7 @@ string AI::getCommand(int dt)
                 output *= -1;
             }
 
-            if (!mDribblerRuntime && angle > 100)
+            if (!mDribblerRuntime && angle > 250)
             {
                 return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
             }

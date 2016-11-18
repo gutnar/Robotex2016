@@ -97,32 +97,15 @@ int isCircular(vector<Point> contour)
 }
 
 void Calibrator::calibrate(VideoCapture cap, CSimpleIniA *ini) {
-    string colors[5] = {"ORANGE", "BLUE", "BLACK", "WHITE", "GREEN"};
-
-    for (int i = 0; i < 5; ++i) {
-        calibrateColor(cap, ini, colors[i]);
+    for (int i = 0; i < NUMBER_OF_COLORS; ++i) {
+        calibrateColor(cap, ini, COLORS[i]);
     }
 }
 
 void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color)
 {
     // Create window
-    if (color == "ORANGE")
-    {
-        mWindowName = "Calibrate orange";
-    } else if (color == "BLUE")
-    {
-        mWindowName = "Calibrate blue";
-    } else if (color == "BLACK")
-    {
-        mWindowName = "Calibrate black";
-    } else if (color == "WHITE")
-    {
-        mWindowName = "Calibrate white";
-    } else if (color == "GREEN")
-    {
-        mWindowName = "Calibrate green";
-    }
+    mWindowName = "Calibrate " + color;
 
     // Get view
     namedWindow(mWindowName);

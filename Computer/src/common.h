@@ -21,4 +21,7 @@ inline std::string itos(int n)
     return std::string(buffer);
 }
 
+#define NUMBER_OF_COLORS 6
+std::string const COLORS[NUMBER_OF_COLORS] = {"BLACK", "BLUE","GREEN","ORANGE","YELLOW","WHITE"};
+
 #endif //ROBOTEX2016_COMMON_H

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.11)
 project(Robotex2016)
-set (CMAKE_CXX_FLAGS "--std=gnu++11 ${CMAKE_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS "-fopenmp --std=gnu++11 ${CMAKE_CXX_FLAGS}")
 
 # Source files to compile
 add_executable(Robotex2016 src/main.cpp src/Calibrator.cpp src/Calibrator.h src/Detector.cpp src/Detector.h lib/ConvertUTF.c lib/snippets.cpp src/AI.cpp src/AI.h src/common.h src/Communicator.cpp src/Communicator.h)

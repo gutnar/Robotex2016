@@ -32,8 +32,8 @@ Detector::Detector(CSimpleIniA &configurationIni, CSimpleIniA &colorsIni) {
 
     for (int i = 0; i < 6; ++i)
     {
-        mWhite[i] = atoi(mColorsIni->GetValue("WHITE", keys[i].c_str(), NULL));
-        mBlack[i] = atoi(mColorsIni->GetValue("BLACK", keys[i].c_str(), NULL));
+        mWhite[i] = atoi(mColorsIni->GetValue("WHITE", keys[i].c_str()));
+        mBlack[i] = atoi(mColorsIni->GetValue("BLACK", keys[i].c_str()));
     }
 
     //namedWindow("test");
@@ -126,7 +126,7 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
 
     // center line for measuring x-axis distances
     line(srcImage, Point(IMAGE_HALF_WIDTH, 0), Point(IMAGE_HALF_WIDTH, IMAGE_HEIGHT), Scalar(255, 0, 255), 1);
-    imshow("test", srcImage);
+    //imshow("test", srcImage);
 
     return balls;
 }
