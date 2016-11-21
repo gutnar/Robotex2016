@@ -7,16 +7,13 @@
 using namespace std;
 using namespace cv;
 
-void Detector::onMouse(int event, int x, int y)
-{
-    if (event == EVENT_LBUTTONDOWN)
-    {
+void Detector::onMouse(int event, int x, int y) {
+    if (event == EVENT_LBUTTONDOWN) {
         cout << abs(IMAGE_HALF_WIDTH - x) << " " << (IMAGE_HEIGHT - y) << endl;
     }
 }
 
-void Detector::mouseEventHandler(int event, int x, int y, int flags, void *userdata)
-{
+void Detector::mouseEventHandler(int event, int x, int y, int flags, void *userdata) {
     Detector *detector = reinterpret_cast<Detector *>(userdata);
     detector->onMouse(event, x, y);
 }
@@ -28,10 +25,9 @@ Detector::Detector(CSimpleIniA &configurationIni, CSimpleIniA &colorsIni) {
     mColorsIni = &colorsIni;
 
     // Color ranges
-    string keys[6] = {"H_MIN","H_MAX","S_MIN","S_MAX","V_MIN","V_MAX"};
+    string keys[6] = {"H_MIN", "H_MAX", "S_MIN", "S_MAX", "V_MIN", "V_MAX"};
 
-    for (int i = 0; i < 6; ++i)
-    {
+    for (int i = 0; i < 6; ++i) {
         mWhite[i] = atoi(mColorsIni->GetValue("WHITE", keys[i].c_str()));
         mBlack[i] = atoi(mColorsIni->GetValue("BLACK", keys[i].c_str()));
     }
@@ -43,7 +39,7 @@ Detector::Detector(CSimpleIniA &configurationIni, CSimpleIniA &colorsIni) {
 void Detector::filterColor(Mat &srcImage, Mat &dstImage, string color) {
     // Load color data
     int values[6];
-    string keys[6] = {"H_MIN","H_MAX","S_MIN","S_MAX","V_MIN","V_MAX"};
+    string keys[6] = {"H_MIN", "H_MAX", "S_MIN", "S_MAX", "V_MIN", "V_MAX"};
 
     for (int i = 0; i < 6; ++i) {
         values[i] = atoi(mColorsIni->GetValue(color.c_str(), keys[i].c_str(), NULL));
@@ -78,8 +74,7 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
     // Find contours from filtered image
     findContours(filteredImage, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
 
-    for (int i = 0; i < contours.size(); ++i)
-    {
+    for (int i = 0; i < contours.size(); ++i) {
         //drawContours(srcImage, contours, i, blue, 2, 8, hierarchy, 0, Point());
         Ball ball;
 
@@ -90,7 +85,7 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         int minX = IMAGE_WIDTH, maxX = 0;
         int maxY = 0;
 
-        for (int j = 0; j < contourSize ; ++j) {
+        for (int j = 0; j < contourSize; ++j) {
             sumX += contours[i][j].x;
             sumY += contours[i][j].y;
 
@@ -99,7 +94,7 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
             maxY = max(maxY, contours[i][j].y);
         }
 
-        ball.center = Point(sumX/contourSize, sumY/contourSize);
+        ball.center = Point(sumX / contourSize, sumY / contourSize);
 
         /// CHECK IF BALL IS WITHIN BORDERS
         if (!isBallWithinBorders(srcImage, ball)) {
@@ -107,19 +102,22 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         }
 
         // x-distance positive when ball on right half and negative when on left half
-        ball.distance = Point(round(DISTANCE_C*(ball.center.x - IMAGE_HALF_WIDTH)/maxY), round(DISTANCE_A + DISTANCE_B/maxY));
+        ball.distance = Point(round(DISTANCE_C * (ball.center.x - IMAGE_HALF_WIDTH) / maxY),
+                              round(DISTANCE_A + DISTANCE_B / maxY));
 
-        float leftDistance = (DISTANCE_C*(minX - IMAGE_HALF_WIDTH)/maxY);
-        float rightDistance = (DISTANCE_C*(maxX - IMAGE_HALF_WIDTH)/maxY);
-        float width = rightDistance - leftDistance;
+        float leftDistance = (DISTANCE_C * (minX - IMAGE_HALF_WIDTH) / maxY);
+        float rightDistance = (DISTANCE_C * (maxX - IMAGE_HALF_WIDTH) / maxY);
+        int width = round(rightDistance - leftDistance);
 
-        if (width < 3 || width > 5) {
+
+        if (width < 2 || width > 5) {
             continue;
         }
 
         drawContours(srcImage, contours, i, blue, 1);
         //putText(srcImage, itos(IMAGE_HEIGHT - maxY), Point(ball.center.x + 50, ball.center.y), 1, 1, white);
-        putText(srcImage, itos(round(rightDistance-leftDistance)), Point(ball.center.x+20, ball.center.y), 1, 1, white);
+        putText(srcImage, itos(round(rightDistance - leftDistance)), Point(ball.center.x + 20, ball.center.y), 1, 1,
+                white);
 
         balls.push_back(ball);
     }
@@ -143,58 +141,73 @@ Point Detector::findGoal(Mat &srcImage, string color) {
     // Find contours from filtered image
     findContours(filteredImage, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
 
-    Scalar blue = Scalar(255, 0, 0);
+    int largestContourIndex = -1;
 
-    if (contours.size()) {
-        int largestContourIndex = 0;
-        // Go through all contours
-        for (int i = 0; i < contours.size(); ++i) {
-            // Go through contour
-            if (contours[i].size() > contours[largestContourIndex].size()) {
-                largestContourIndex = i;
-            }
+    // Go through all contours
+    for (int i = 0; i < contours.size(); ++i) {
+        // Contour width
+        int minX = IMAGE_WIDTH, maxX = 0;
+        int minY = IMAGE_HEIGHT;
 
+        for (int j = 0; j < contours[i].size(); ++j) {
+            minX = min(minX, contours[i][j].x);
+            maxX = max(maxX, contours[i][j].x);
+            minY = min(minY, contours[i][j].y);
         }
 
-        vector<Point> largestContour = contours[largestContourIndex];
+        float leftDistance = (DISTANCE_C * (minX - IMAGE_HALF_WIDTH) / minY);
+        float rightDistance = (DISTANCE_C * (maxX - IMAGE_HALF_WIDTH) / minY);
+        int width = round(rightDistance - leftDistance);
 
-        int minY = IMAGE_WIDTH;
-        int maxY = 0;
-        int minX = IMAGE_HEIGHT;
-        int maxX = 0;
-
-        // The center of the contour
-        for (int j = 0; j < largestContour.size(); ++j) {
-            if (minY > largestContour[j].y) minY = largestContour[j].y;
-            if (maxY < largestContour[j].y) maxY = largestContour[j].y;
-            if (minX > largestContour[j].x) minX = largestContour[j].x;
-            if (maxX < largestContour[j].x) maxX = largestContour[j].x;
-
-            //drawContours(filteredImage, contours, i, blue, 1);
+        if (width < 60) {
+            continue;
         }
 
-        // Center  coordinates
-        Point center((maxX-minX)/2 + minX, (maxY-minY)/2 + minY);
-        //circle(filteredImage, center, 5, blue);
-
-        //line(srcImage, Point())
-        line(srcImage, Point(center.x, 0), Point(center.x, IMAGE_HEIGHT), Scalar(0, 255, 255), 1);
-        imshow("goal", srcImage);
-
-        // Test
-        //drawContours(filteredImage, contours, largestContourIndex, blue, 1);
-
-        // Display
-        //namedWindow("test");
-
-        return center;
+        // Go through contour
+        if (largestContourIndex == -1 || contours[i].size() > contours[largestContourIndex].size()) {
+            largestContourIndex = i;
+        }
     }
 
-    return Point(0, 0);
+    if (largestContourIndex == -1) {
+        return Point(0, 0);
+    }
+
+    vector<Point> largestContour = contours[largestContourIndex];
+
+    int minY = IMAGE_WIDTH;
+    int maxY = 0;
+    int minX = IMAGE_HEIGHT;
+    int maxX = 0;
+
+    // The center of the contour
+    for (int j = 0; j < largestContour.size(); ++j) {
+        if (minY > largestContour[j].y) minY = largestContour[j].y;
+        if (maxY < largestContour[j].y) maxY = largestContour[j].y;
+        if (minX > largestContour[j].x) minX = largestContour[j].x;
+        if (maxX < largestContour[j].x) maxX = largestContour[j].x;
+
+        //drawContours(filteredImage, contours, i, blue, 1);
+    }
+
+    // Center  coordinates
+    Point center((maxX - minX) / 2 + minX, (maxY - minY) / 2 + minY);
+    //circle(filteredImage, center, 5, blue);
+
+    //line(srcImage, Point())
+    line(srcImage, Point(center.x, 0), Point(center.x, IMAGE_HEIGHT), Scalar(0, 255, 255), 1);
+    imshow("goal", srcImage);
+
+    // Test
+    //drawContours(filteredImage, contours, largestContourIndex, blue, 1);
+
+    // Display
+    //namedWindow("test");
+
+    return center;
 }
 
-bool Detector::isBallWithinBorders(Mat &srcImage, Detector::Ball ball)
-{
+bool Detector::isBallWithinBorders(Mat &srcImage, Detector::Ball ball) {
     //Mat filteredImage;
     //filterColor(srcImage, filteredImage, "BLACK");
     //imshow("detector", srcImage);
@@ -222,15 +235,13 @@ bool Detector::isBallWithinBorders(Mat &srcImage, Detector::Ball ball)
             // TODO: ball on border
             //srcImage.at<Vec3b>(y, ball.center.x) = Vec3b(255, 0, 255);
 
-            if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2)
-            {
+            if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2) {
                 return false;
                 cout << sequentialWhitePixels << " " << sequentialBlackPixels << endl;
                 break;
             }
 
-            if (++sequentialOtherPixels > 2)
-            {
+            if (++sequentialOtherPixels > 2) {
                 sequentialWhitePixels = 0;
                 sequentialWhitePixels = 0;
             }
@@ -243,8 +254,7 @@ bool Detector::isBallWithinBorders(Mat &srcImage, Detector::Ball ball)
     return true;
 }
 
-int Detector::findBorder(Mat &srcImage, int x)
-{
+int Detector::findBorder(Mat &srcImage, int x) {
     //Mat filteredImage;
     //filterColor(srcImage, filteredImage, "BLACK");
     //imshow("detector", srcImage);
@@ -272,15 +282,13 @@ int Detector::findBorder(Mat &srcImage, int x)
             // TODO: ball on border
             //srcImage.at<Vec3b>(y, ball.center.x) = Vec3b(255, 0, 255);
 
-            if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2)
-            {
+            if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2) {
                 return y;
                 cout << sequentialWhitePixels << " " << sequentialBlackPixels << endl;
                 break;
             }
 
-            if (++sequentialOtherPixels > 2)
-            {
+            if (++sequentialOtherPixels > 2) {
                 sequentialWhitePixels = 0;
                 sequentialWhitePixels = 0;
             }
@@ -293,8 +301,7 @@ int Detector::findBorder(Mat &srcImage, int x)
     return -1;
 }
 
-bool Detector::isPixelInColorRange(Vec3b pixel, int *color)
-{
+bool Detector::isPixelInColorRange(Vec3b pixel, int *color) {
     if (pixel[0] < color[0] || pixel[0] > color[1]) return false;
     if (pixel[1] < color[2] || pixel[1] > color[3]) return false;
     if (pixel[2] < color[4] || pixel[2] > color[5]) return false;

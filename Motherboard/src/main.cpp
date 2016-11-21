@@ -172,8 +172,10 @@ void parseCommand(char *command) {
   else if (command[0] == 'd') {
     if (command[1] == '0') {
       pwm1.pulsewidth_us(100);
+    } else if (command[1] == '1') {
+      pwm1.pulsewidth_us(268);
     } else {
-      pwm1.pulsewidth_us(220);
+      pwm1.write((float) atoi(command + 1)/100);
     }
     //pwm1.pulsewidth_us((int) atoi(command+1));
     //serial.printf("sending %d\n", (int) atoi(command+1));

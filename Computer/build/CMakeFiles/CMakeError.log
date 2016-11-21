@@ -1,0 +1,34 @@
+Determining if the CL_VERSION_2_0 exist failed with the following output:
+Change Dir: /home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_343ed/fast"
+/usr/bin/make -f CMakeFiles/cmTC_343ed.dir/build.make CMakeFiles/cmTC_343ed.dir/build
+make[1]: Entering directory '/home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_343ed.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -I/usr/local/include   -o CMakeFiles/cmTC_343ed.dir/CheckSymbolExists.c.o   -c /home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+/home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c: In function ‘main’:
+/home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:8:19: error: ‘CL_VERSION_2_0’ undeclared (first use in this function)
+   return ((int*)(&CL_VERSION_2_0))[argc];
+                   ^
+/home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:8:19: note: each undeclared identifier is reported only once for each function it appears in
+CMakeFiles/cmTC_343ed.dir/build.make:65: recipe for target 'CMakeFiles/cmTC_343ed.dir/CheckSymbolExists.c.o' failed
+make[1]: *** [CMakeFiles/cmTC_343ed.dir/CheckSymbolExists.c.o] Error 1
+make[1]: Leaving directory '/home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_343ed/fast' failed
+make: *** [cmTC_343ed/fast] Error 2
+
+File /home/jk/ClionProjects/Robotex2016/Computer/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include </usr/local/include/CL/cl.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef CL_VERSION_2_0
+  return ((int*)(&CL_VERSION_2_0))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+

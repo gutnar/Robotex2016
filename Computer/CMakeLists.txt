@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.11)
 project(Robotex2016)
+set (CMAKE_CXX_COMPILER /usr/bin/g++)
 set (CMAKE_CXX_FLAGS "-fopenmp --std=gnu++11 ${CMAKE_CXX_FLAGS}")
 
 # Source files to compile
@@ -10,10 +11,13 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 target_link_libraries(Robotex2016 ${OpenCV_LIBS})
 
+# OpenCL
+find_package(OpenCL REQUIRED)
+
 # libserialport
 #target_link_libraries(Robotex2016 ${libserialport_LIBRARIES})
 #include_directories(${libserialport_INCLUDE_DIRS})
-target_link_libraries(Robotex2016 -L/usr/local/lib -lserialport)
+target_link_libraries(Robotex2016 -L/usr/local/lib -lserialport -lOpenCL)
 include_directories(/usr/local/include)
 
 # Lib
