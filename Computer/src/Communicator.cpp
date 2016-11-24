@@ -5,6 +5,14 @@
 #include <iostream>
 #include "Communicator.h"
 
+Communicator::Communicator() {
+}
+
+Communicator::Communicator(char fieldId, char robotId) {
+    mFieldId = fieldId;
+    mRobotId = robotId;
+}
+
 void Communicator::connect(int vendorId, int productId) {
     // Get list of all connected USB devices
     sp_list_ports(&mPorts);
@@ -69,41 +77,51 @@ string Communicator::getRefereeCommand() {
     //cout << "mBuf " << mBuf << endl;
 
     for (int i = 0; i < 12; ++i) {
-        if (mBuf[i] == 'a' && mBuf[(i+1)%12] == 'A' && mBuf[(i+2)%12] == 'X') {
-            string command;
-
-            for (int j = 3; j < 12; ++j) {
-                command += mBuf[(i+j)%12];
-            }
-
-            if (command == lastCommand) {
-                return "";
-            }
-
-            lastCommand = command;
-
-            if (command == "START----") {
-                send("aABACK-----");
-                return "START";
-            }
-
-            if (command == "STOP-----") {
-                send("aABACK-----");
-                return "STOP";
-            }
-
-            if (command == "PING-----") {
-                send("aABACK------");
-
-                /*
-                for (int j = 0; j < 11; ++j) {
-                    mBuf[j] = '-';
-                }
-                 */
-            }
-
-            break;
+        if (mBuf[i] != 'a') {
+            continue;
         }
+
+        if (mBuf[(i+1)%12] != 'X' && mBuf[(i+1)%12] != mFieldId) {
+            continue;
+        }
+
+        if (mBuf[(i+2)%12] != 'X' && mBuf[(i+2)%12] != mRobotId) {
+            continue;
+        }
+
+        string command;
+
+        for (int j = 3; j < 12; ++j) {
+            command += mBuf[(i+j)%12];
+        }
+
+        if (command == lastCommand) {
+            return "";
+        }
+
+        lastCommand = command;
+
+        if (command == "START----") {
+            send("aABACK-----");
+            return "START";
+        }
+
+        if (command == "STOP-----") {
+            send("aABACK-----");
+            return "STOP";
+        }
+
+        if (command == "PING-----") {
+            send("aABACK------");
+
+            /*
+            for (int j = 0; j < 11; ++j) {
+                mBuf[j] = '-';
+            }
+             */
+        }
+
+        break;
     }
 
     return "";

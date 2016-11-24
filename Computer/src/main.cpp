@@ -1,10 +1,15 @@
 #include <opencv2/highgui.hpp>
 #include <SimpleIni.h>
 #include <sys/time.h>
-#include "omp.h"
+#include <omp.h>
+
+#include <getopt.h>
+#include "capture.h"
+#include "vision.h"
+
+#include <iterator>
 #include <CL/cl.hpp>
 #include <CL/opencl.h>
-#include <iterator>
 
 #include "Communicator.h"
 #include "Calibrator.h"
@@ -15,63 +20,143 @@ using namespace cv;
 using namespace std;
 using namespace cl;
 
-__kernel void ndrange_parallelism () {
-    int i = get_global_id(0);
-    int j = get_global_id(1);
-    int k = get_global_id(2);
-
-    printf("GPU %d,%d,%dn", i, j, k);
-
-}
-
-int main() {
-    /// SET UP OPENCL
-    int x = 4;
-    int y = 3;
-    int z = 2;
+int main3()
+{
+    int x = 400;
+    int y = 30;
+    int z = 20;
 
     // GPU 3d loop
     vector<Platform> platforms;
     vector<Device> devices;
     vector<Kernel> kernels;
 
-    try {
+    // create platform, context and command queue
+    Platform::get(&platforms);
+    platforms[0].getDevices(CL_DEVICE_TYPE_GPU, &devices);
+    Context context(devices);
+    CommandQueue queue(context, devices[0]);
 
-        // create platform, context and command queue
-        Platform::get(&platforms);
-        platforms[0].getDevices(CL_DEVICE_TYPE_GPU, &devices);
-        Context context(devices);
-        CommandQueue queue(context, devices[0]);
+    // load opencl source
+    std::ifstream cl_file("src/kernels.cl");
+    std::string cl_string(std::istreambuf_iterator<char>(cl_file),
+                          (std::istreambuf_iterator<char>()));
+    Program::Sources source(1, std::make_pair(cl_string.c_str(),
+                                              cl_string.length() + 1));
 
-        // load opencl source
-        std::ifstream cl_file("kernels.cl");
-        std::string cl_string(std::istreambuf_iterator<char>(cl_file),
-                              (std::istreambuf_iterator<char>()));
-        Program::Sources source(1, std::make_pair(cl_string.c_str(),
-                                                  cl_string.length() + 1));
+    // create program and kernel and set kernel arguments
+    Program program(context, source);
+    program.build(devices);
+    Kernel kernel(program, "ndrange_parallelism");
 
-        // create program and kernel and set kernel arguments
-        Program program(context, source);
-        program.build(devices);
-        Kernel kernel(program, "ndrange_parallelism");
+    // execute kernel and wait for completion
+    NDRange global_work_size(x, y, z);
+    queue.enqueueNDRangeKernel(kernel, NullRange, global_work_size, NullRange);
+    queue.finish();
 
-        // execute kernel and wait for completion
-        NDRange global_work_size(x, y, z);
-        queue.enqueueNDRangeKernel(kernel, NullRange, global_work_size, NullRange);
-        queue.finish();
+    return 0;
+}
 
-    } catch (int e) {
-        //std::cout << std::endl << e.what() << " : " << e.err() << std::endl;
-        std::cout << "err " << e << endl;
+//#define PIXEL_FORMAT V4L2_PIX_FMT_YUYV
+
+int main2()
+{
+    /// START VIDEO CAPTURE
+    //VideoCapture cvCap;
+    //cvCap.open(0);
+
+    /*
+    /// MAIN LOOP
+    while (true) {
+        /// IMAGE MANIPULATION
+        cvCap >> image;
+
+        //circle(image, Point(320, 240), 2, Scalar(255, 0, 255));
+        imshow("test", image);
+
+        // Close when pressing space or esc
+        if (waitKey(30) > 0) {
+            break;
+        }
     }
 
+    cvCap.release();
+     */
+
+    /*
+    circle(image, Point(320, 240), 2, Scalar(255, 0, 255));
+    imshow("test", image);
+     */
+
+    namedWindow("test");
+
+    Capture cap;
+    LowVision vision;
+
+    const char *video_device = "/dev/video0";
+    const int input_idx = 1;
+    const int width  = IMAGE_WIDTH;
+    const int height = IMAGE_HEIGHT;
+
+    // initialize
+    cap.init(video_device, input_idx, width, height, V4L2_PIX_FMT_YUYV);
+    char tmap_file[64];
+    snprintf(tmap_file,64,"config/thresh.%d%d%d.tmap.gz",bits_y,bits_u,bits_v);
+    vision.init("config/colors.txt",tmap_file,width,height);
+
+    // main loop
+    while (true) {
+        // capture and process a frame
+        const Capture::Image *img = cap.captureFrame();
+
+        if (img != NULL) {
+            vision_image cmv_img;
+            cmv_img.buf    = (pixel*)(img->data);
+            cmv_img.width  = img->width;
+            cmv_img.height = img->height;
+            cmv_img.pitch  = img->bytesperline;
+            cmv_img.field  = img->field;
+
+            vision.processFrame(cmv_img);
+
+            //Mat image(IMAGE_WIDTH, IMAGE_HEIGHT, CV_8UC3, Scalar(0, 0, 0));
+            Mat image = Mat::zeros(IMAGE_WIDTH, IMAGE_HEIGHT, CV_8U);
+
+            const Region* region = NULL;
+
+            for (region = vision.getRegions(1); region != NULL; region = region->next) {
+                circle(image, Point(region->x1, region->y1), 5, Scalar(255, 0, 255));
+            }
+
+            //cout << vision.getRegions(1)->next->area << endl;
+
+            cap.releaseFrame(img);
+
+            imshow("test", image);
+        } else {
+            break;
+        }
+
+        if (waitKey(30) > 0) {
+            break;
+        }
+    }
+
+    // shutdown
+    vision.close();
+    cap.close();
+
+    return(0);
+}
+
+int main() {
     /// LOAD CONFIGURATION
     CSimpleIniA configuration;
     configuration.SetUnicode();
     configuration.LoadFile("configuration.ini");
 
     /// CREATE SRF COMMUNICATOR
-    Communicator srf;
+    Communicator srf(configuration.GetValue("settings", "FIELD_ID")[0], configuration.GetValue("settings", "ROBOT_ID")[0]);
 
     try {
         /*
@@ -166,10 +251,35 @@ int main() {
         values[i] = atoi(colors.GetValue(color.c_str(), keys[i].c_str(), NULL));
     }*/
 
+    /// KERNEL
+    vector<Platform> platforms;
+    vector<Device> devices;
+    vector<Kernel> kernels;
+
+    // create platform, context and command queue
+    Platform::get(&platforms);
+    platforms[0].getDevices(CL_DEVICE_TYPE_GPU, &devices);
+    Context context(devices);
+
+    // load opencl source
+    std::ifstream cl_file("src/kernels.cl");
+    std::string cl_string(std::istreambuf_iterator<char>(cl_file),
+                          (std::istreambuf_iterator<char>()));
+    Program::Sources source(1, std::make_pair(cl_string.c_str(),
+                                              cl_string.length() + 1));
+
+    // create program and kernel and set kernel arguments
+    Program program(context, source);
+
+    if(program.build(devices) != CL_SUCCESS){
+        cout << "Build failed" << endl;
+    }
+
     /// MAIN LOOP
     while (true) {
         /// IMAGE MANIPULATION
-        Mat image, workedImage;
+        Mat image;
+        Mat workedImage;
         cap >> image;
 
         //namedWindow("cam");
@@ -183,7 +293,84 @@ int main() {
         // Pixels of ball color
         //vector<Point> ballPixels;
 
+        /// IMAGE DATA FOR OPENCL
+        //std::vector<uint> array(workedImage.rows*workedImage.cols);
+        //array = workedImage.data;
+        //workedImage.col(0).copyTo(array);
+
+        int in[IMAGE_PIXELS*3];
+
+        //workedImage.data
+
+        for (int y = 0; y < IMAGE_HEIGHT; ++y) {
+            for (int x = 0; x < IMAGE_WIDTH; ++x) {
+                Vec3b pixel = workedImage.at<Vec3b>(y, x);
+
+                in[(y*IMAGE_WIDTH + x)*3 + 0] = pixel[0];
+                in[(y*IMAGE_WIDTH + x)*3 + 1] = pixel[1];
+                in[(y*IMAGE_WIDTH + x)*3 + 2] = pixel[2];
+            }
+        }
+
+        //cout << (int) workedImage.data[0] << endl;
+
+        int out[IMAGE_PIXELS];
+
+        Buffer buffer_in(context, CL_MEM_READ_ONLY, sizeof(int)*IMAGE_PIXELS*3);
+        Buffer buffer_out(context, CL_MEM_WRITE_ONLY, sizeof(int)*IMAGE_PIXELS);
+
+        Kernel kernel(program, "mark_pixels");
+        kernel.setArg(0, buffer_in);
+        kernel.setArg(1, buffer_out);
+
         /// MARK PIXELS
+        CommandQueue queue(context, devices[0]);
+        queue.enqueueWriteBuffer(buffer_in, CL_TRUE, 0, sizeof(int)*IMAGE_PIXELS*3, in);
+        queue.enqueueNDRangeKernel(kernel, NullRange, NDRange(IMAGE_WIDTH, IMAGE_HEIGHT), NullRange);
+        queue.enqueueReadBuffer(buffer_out, CL_TRUE, 0, sizeof(int)*IMAGE_PIXELS, out);
+        queue.finish();
+
+        for (int y = 0; y < IMAGE_HEIGHT; ++y) {
+            for (int x = 0; x < IMAGE_WIDTH; ++x) {
+                switch (out[y*IMAGE_WIDTH + x]) {
+                    // white
+                    case 0:
+                        image.at<Vec3b>(y, x) = Vec3b(255, 255, 255);
+                        //workedImage.at<Vec3b>(y, x) = colorMap["WHITE"];
+                        break;
+                    // yellow
+                    case 1:
+                        image.at<Vec3b>(y, x) = Vec3b(0, 255, 255);
+                        //workedImage.at<Vec3b>(y, x) = colorMap["ORANGE"];
+                        break;
+                    // blue
+                    case 2:
+                        image.at<Vec3b>(y, x) = Vec3b(255, 0, 0);
+                        //workedImage.at<Vec3b>(y, x) = colorMap["BLUE"];
+                        break;
+                    // black
+                    case 3:
+                        image.at<Vec3b>(y, x) = Vec3b(0, 0, 0);
+                        //workedImage.at<Vec3b>(y, x) = colorMap["BLACK"];
+                        break;
+                    // green
+                    case 4:
+                        image.at<Vec3b>(y, x) = Vec3b(0, 255, 0);
+                        //workedImage.at<Vec3b>(y, x) = colorMap["GREEN"];
+                        break;
+                }
+            }
+        }
+
+        gettimeofday(&tp, NULL);
+        long int time = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+        Scalar white = Scalar(255, 255, 255);
+        putText(image, itos(time - startTime), Point(20, 20), 1, 1, white);
+        startTime = time;
+
+        imshow("test", image);
+
+#ifdef TEST
 #pragma omp parallel for
         for (int y = 0; y < IMAGE_HEIGHT; ++y) {
             for (int x = 0; x < IMAGE_WIDTH; ++x) {
@@ -294,7 +481,9 @@ int main() {
                 workedImage.at<Vec3b>(y, x) = colorMap[closestColor];
             }
         }
+#endif
 
+        /*
         /// FIND BALLS
         vector<Detector::Ball> balls = detector.findBalls(workedImage);
 
@@ -331,6 +520,7 @@ int main() {
 
         //cvtColor(workedImage, workedImage, COLOR_HSV2BGR);
         imshow("test", workedImage);
+         */
 
         // Close when pressing space or esc
         if (waitKey(30) > 0) {

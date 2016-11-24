@@ -12,6 +12,8 @@ using namespace std;
 
 class Communicator {
 public:
+    Communicator();
+    Communicator(char fieldId, char robotId);
     ~Communicator();
     void connect(int vendorId, int productId);
     void connect(string name);
@@ -27,6 +29,8 @@ private:
     int mBallCapturedFrames;
     struct sp_port ** mPorts;
     sp_port * mPort;
+    char mFieldId;
+    char mRobotId;
 };
 
 
