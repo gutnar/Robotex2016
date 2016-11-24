@@ -330,6 +330,7 @@ int main() {
         queue.enqueueReadBuffer(buffer_out, CL_TRUE, 0, sizeof(int)*IMAGE_PIXELS, out);
         queue.finish();
 
+        // Test
         for (int y = 0; y < IMAGE_HEIGHT; ++y) {
             for (int x = 0; x < IMAGE_WIDTH; ++x) {
                 switch (out[y*IMAGE_WIDTH + x]) {
@@ -362,6 +363,54 @@ int main() {
             }
         }
 
+        /// DETECT LINES OF SAME COLOR
+        vector<array<float, 2>> balls;
+        //vector<vector<>> blobs;
+        vector<array<int, 4>> previousLines;
+
+        for (int y = 0; y < IMAGE_HEIGHT; ++y) {
+            vector<array<int, 4>> currentLines;
+
+            int lastColor = out[y*IMAGE_WIDTH];
+            int beginColorIndex = 0;
+
+            for (int x = 1; x < IMAGE_WIDTH; ++x) {
+                int i = y*IMAGE_WIDTH + x;
+
+                if (lastColor != out[i]) {
+                    array<int, 4> line = {y, beginColorIndex, x - 1, lastColor};
+                    currentLines.push_back(line);
+
+                    for (int l = 0; l < previousLines.size(); ++l) {
+                        // Skip if lines do not touch
+                        if (previousLines[l][1] > line[2] || previousLines[l][2] < line[1]) {
+                            continue;
+                        }
+
+                        // Connect lines into blob
+                    }
+
+                    beginColorIndex = x;
+                    lastColor = out[i];
+                }
+            }
+
+
+            array<int, 4> line = {y, beginColorIndex, IMAGE_WIDTH - 1, lastColor};
+            currentLines.push_back(line);
+
+            previousLines = currentLines;
+        }
+
+        // Test
+        /*
+        for (int i = 0; i < lines.size(); ++i) {
+            image.at<Vec3b>(lines[i][0], lines[i][1]) = Vec3b(0, 0, 255);
+            image.at<Vec3b>(lines[i][0], lines[i][2]) = Vec3b(0, 0, 255);
+        }
+        */
+
+        /// FPS
         gettimeofday(&tp, NULL);
         long int time = tp.tv_sec * 1000 + tp.tv_usec / 1000;
         Scalar white = Scalar(255, 255, 255);
