@@ -15,6 +15,7 @@
 #include "Calibrator.h"
 #include "Detector.h"
 #include "AI.h"
+#include "Blob.h"
 
 using namespace cv;
 using namespace std;
@@ -363,13 +364,12 @@ int main() {
             }
         }
 
-        /// DETECT LINES OF SAME COLOR
-        vector<array<float, 2>> balls;
-        //vector<vector<>> blobs;
-        vector<array<int, 4>> previousLines;
+        /// DETECT BLOBS OF SAME COLOR
+        vector<Blob> blobs;
+        vector<BlobLine> previousLines;
 
         for (int y = 0; y < IMAGE_HEIGHT; ++y) {
-            vector<array<int, 4>> currentLines;
+            vector<BlobLine> currentLines;
 
             int lastColor = out[y*IMAGE_WIDTH];
             int beginColorIndex = 0;
@@ -378,16 +378,48 @@ int main() {
                 int i = y*IMAGE_WIDTH + x;
 
                 if (lastColor != out[i]) {
-                    array<int, 4> line = {y, beginColorIndex, x - 1, lastColor};
-                    currentLines.push_back(line);
+                    if (lastColor == 1 && x - 1 - beginColorIndex > 1) {//} || out[i] == 2) {
+                        BlobLine line;
+                        line.y = y;
+                        line.xi = beginColorIndex;
+                        line.xf = x - 1;
+                        line.color = lastColor;
+                        line.blobIndex = -1;
 
-                    for (int l = 0; l < previousLines.size(); ++l) {
-                        // Skip if lines do not touch
-                        if (previousLines[l][1] > line[2] || previousLines[l][2] < line[1]) {
-                            continue;
+                        for (int l = 0; l < previousLines.size(); ++l) {
+                            // Skip if colors do not match
+                            if (previousLines[l].color != line.color) {
+                                continue;
+                            }
+
+                            // Skip if lines do not touch
+                            if (previousLines[l].xi > line.xf || previousLines[l].xf < line.xi) {
+                                continue;
+                            }
+
+                            // Connect lines into blob
+                            if (line.blobIndex == -1) {
+                                line.blobIndex = previousLines[l].blobIndex;
+                                //cout << line.blobIndex << endl;
+                            } else if (line.blobIndex != previousLines[l].blobIndex) {
+                                blobs[line.blobIndex].addBlob(blobs[previousLines[l].blobIndex]);
+                                blobs[previousLines[l].blobIndex].mHidden = true;
+                                previousLines[l].blobIndex = line.blobIndex;
+                            }
                         }
 
-                        // Connect lines into blob
+                        // Create new blob?
+                        if (line.blobIndex == -1) {
+                            Blob blob;
+                            line.blobIndex = (int) blobs.size();
+                            blobs.push_back(blob);
+                        }
+
+                        // Add line to blob
+                        blobs[line.blobIndex].addLine(line);
+
+                        // Add to current row
+                        currentLines.push_back(line);
                     }
 
                     beginColorIndex = x;
@@ -395,20 +427,37 @@ int main() {
                 }
             }
 
-
-            array<int, 4> line = {y, beginColorIndex, IMAGE_WIDTH - 1, lastColor};
-            currentLines.push_back(line);
-
             previousLines = currentLines;
         }
 
         // Test
-        /*
-        for (int i = 0; i < lines.size(); ++i) {
-            image.at<Vec3b>(lines[i][0], lines[i][1]) = Vec3b(0, 0, 255);
-            image.at<Vec3b>(lines[i][0], lines[i][2]) = Vec3b(0, 0, 255);
+        for (int i = 0; i < blobs.size(); ++i) {
+            //image.at<Vec3b>(lines[i][0], lines[i][1]) = Vec3b(0, 0, 255);
+            //image.at<Vec3b>(lines[i][0], lines[i][2]) = Vec3b(0, 0, 255);
+
+            if (!blobs[i].mHidden) {
+                if (blobs[i].mLines.size() > 1) {
+                    //cout << blobs[i].mLines.size() << endl;
+                }
+
+                /*
+                for (int j = 0; j < blobs[i].mLines.size(); ++j) {
+                    line(image, Point(blobs[i].mLines[j].xi, blobs[i].mLines[j].y), Point(blobs[i].mLines[j].xf, blobs[i].mLines[j].y), Scalar(0, 0, 255));
+                }
+                 */
+
+                //cout << blobs[i].mLines.size() << endl;
+
+                line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
+                     Scalar(0, 0, 255));
+                line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                     Scalar(0, 0, 255));
+                line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMinX, blobs[i].mMaxY),
+                     Scalar(0, 0, 255));
+                line(image, Point(blobs[i].mMaxX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                     Scalar(0, 0, 255));
+            }
         }
-        */
 
         /// FPS
         gettimeofday(&tp, NULL);
