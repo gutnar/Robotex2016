@@ -276,12 +276,18 @@ int main() {
         cout << "Build failed" << endl;
     }
 
+    /// TEST IMAGE
+    //Mat testImage;
+    //testImage = imread("images/test3.png", CV_LOAD_IMAGE_COLOR);
+
     /// MAIN LOOP
     while (true) {
         /// IMAGE MANIPULATION
         Mat image;
         Mat workedImage;
         cap >> image;
+
+        //image = testImage.clone();
 
         //namedWindow("cam");
         //imshow("cam", image);
@@ -374,11 +380,12 @@ int main() {
             int lastColor = out[y*IMAGE_WIDTH];
             int beginColorIndex = 0;
 
-            for (int x = 1; x < IMAGE_WIDTH; ++x) {
+            for (int x = 1; x < IMAGE_WIDTH + 1; ++x) {
                 int i = y*IMAGE_WIDTH + x;
+                int currentColor = (x == IMAGE_WIDTH) ? -1 : out[i];
 
-                if (lastColor != out[i]) {
-                    if (lastColor == 1 && x - 1 - beginColorIndex > 1) {//} || out[i] == 2) {
+                if (lastColor != currentColor) {
+                    if ((lastColor == 1 || lastColor == 2) && x - 1 - beginColorIndex > 1) {//} || out[i] == 2) {
                         BlobLine line;
                         line.y = y;
                         line.xi = beginColorIndex;
@@ -423,7 +430,7 @@ int main() {
                     }
 
                     beginColorIndex = x;
-                    lastColor = out[i];
+                    lastColor = currentColor;
                 }
             }
 
@@ -434,20 +441,11 @@ int main() {
         for (int i = 0; i < blobs.size(); ++i) {
             //image.at<Vec3b>(lines[i][0], lines[i][1]) = Vec3b(0, 0, 255);
             //image.at<Vec3b>(lines[i][0], lines[i][2]) = Vec3b(0, 0, 255);
+            if (blobs[i].mMinY > IMAGE_HEIGHT/2 && blobs[i].mSurface < 50){
+                blobs[i].mHidden = true;
+            }
 
             if (!blobs[i].mHidden) {
-                if (blobs[i].mLines.size() > 1) {
-                    //cout << blobs[i].mLines.size() << endl;
-                }
-
-                /*
-                for (int j = 0; j < blobs[i].mLines.size(); ++j) {
-                    line(image, Point(blobs[i].mLines[j].xi, blobs[i].mLines[j].y), Point(blobs[i].mLines[j].xf, blobs[i].mLines[j].y), Scalar(0, 0, 255));
-                }
-                 */
-
-                //cout << blobs[i].mLines.size() << endl;
-
                 line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
                      Scalar(0, 0, 255));
                 line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
@@ -458,6 +456,30 @@ int main() {
                      Scalar(0, 0, 255));
             }
         }
+
+        /*
+#pragma omp parallel for
+        for (int y = 0; y < IMAGE_HEIGHT; ++y) {
+            for (int x = 0; x < IMAGE_WIDTH; ++x) {
+                Vec3b pixel = workedImage.at<Vec3b>(y, x);
+                string closestColor = "WHITE";
+                float minDifference = 3;
+                for (auto &color : colorMap) {
+                    float difference =
+                            pow((float) (pixel[0] - color.second[0]) / 180, 2) +
+                            pow((float) (pixel[1] - color.second[1]) / 255, 2) +
+                            pow((float) (pixel[2] - color.second[2]) / 255, 2);
+
+                    if (difference < minDifference) {
+                        minDifference = difference;
+                        closestColor = color.first;
+                    }
+                }
+
+                image.at<Vec3b>(y, x) = colorMap[closestColor];
+            }
+        }
+         */
 
         /// FPS
         gettimeofday(&tp, NULL);

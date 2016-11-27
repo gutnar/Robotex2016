@@ -28,6 +28,8 @@ public:
     int mMinX = IMAGE_WIDTH;
     int mMaxX = 0;
 
+    int mSurface = 0;
+
     bool mHidden = false;
 
     std::vector<BlobLine> mLines;

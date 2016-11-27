@@ -13,7 +13,9 @@ void Blob::addLine(BlobLine& line) {
     if (line.y < mMinY) mMinY = line.y;
     if (line.y > mMaxY) mMaxY = line.y;
 
-    mLines.push_back(line);
+    mSurface += line.xf - line.xi;
+
+    //mLines.push_back(line);
 }
 
 void Blob::addBlob(Blob& blob) {
@@ -22,7 +24,11 @@ void Blob::addBlob(Blob& blob) {
     if (blob.mMinY < mMinY) mMinY = blob.mMinY;
     if (blob.mMaxY > mMaxY) mMaxY = blob.mMaxY;
 
+    mSurface += blob.mSurface;
+
+    /*
     for (int i = 0; i < blob.mLines.size(); ++i) {
         mLines.push_back(blob.mLines[i]);
     }
+     */
 }
