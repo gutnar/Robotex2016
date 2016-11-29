@@ -4,10 +4,11 @@
 
 #include "Blob.h"
 
-Blob::Blob() {
+Blob::Blob(int color) {
+    mColor = color;
 }
 
-void Blob::addLine(BlobLine& line) {
+void Blob::addLine(BlobLine &line) {
     if (line.xi < mMinX) mMinX = line.xi;
     if (line.xf > mMaxX) mMaxX = line.xf;
     if (line.y < mMinY) mMinY = line.y;
@@ -18,7 +19,7 @@ void Blob::addLine(BlobLine& line) {
     //mLines.push_back(line);
 }
 
-void Blob::addBlob(Blob& blob) {
+void Blob::addBlob(Blob &blob) {
     if (blob.mMinX < mMinX) mMinX = blob.mMinX;
     if (blob.mMaxX > mMaxX) mMaxX = blob.mMaxX;
     if (blob.mMinY < mMinY) mMinY = blob.mMinY;
@@ -31,4 +32,23 @@ void Blob::addBlob(Blob& blob) {
         mLines.push_back(blob.mLines[i]);
     }
      */
+}
+
+int Blob::getWidth() {
+    return mMaxX - mMinX;
+}
+
+int Blob::getHeight() {
+    return mMaxY - mMinY;
+}
+
+int Blob::getSurface() {
+    return mSurface;
+}
+
+cv::Point Blob::getCenter() {
+    return cv::Point(
+            (mMaxX + mMinX) / 2,
+            (mMaxY + mMinY) / 2
+    );
 }

@@ -4,9 +4,6 @@
 
 #include "Detector.h"
 
-using namespace std;
-using namespace cv;
-
 void Detector::onMouse(int event, int x, int y) {
     if (event == EVENT_LBUTTONDOWN) {
         cout << abs(IMAGE_HALF_WIDTH - x) << " " << (IMAGE_HEIGHT - y) << endl;
@@ -34,6 +31,33 @@ Detector::Detector(CSimpleIniA &configurationIni, CSimpleIniA &colorsIni) {
 
     //namedWindow("test");
     //setMouseCallback("test", mouseEventHandler, this);
+
+
+    // Kernel
+    vector<Platform> platforms;
+    vector<Device> devices;
+
+    // Create platform and get device
+    Platform::get(&platforms);
+    platforms[0].getDevices(CL_DEVICE_TYPE_GPU, &devices);
+    mDevice = devices[0];
+
+    // Create context
+    Context context(devices);
+
+    // load opencl source
+    std::ifstream cl_file("src/kernels.cl");
+    std::string cl_string(std::istreambuf_iterator<char>(cl_file),
+                          (std::istreambuf_iterator<char>()));
+    Program::Sources source(1, std::make_pair(cl_string.c_str(),
+                                              cl_string.length() + 1));
+
+    // create program and kernel and set kernel arguments
+    mProgram = Program(context, source);
+
+    if(mProgram.build(devices) != CL_SUCCESS){
+        cout << "OpenCL program build failed!" << endl;
+    }
 };
 
 void Detector::filterColor(Mat &srcImage, Mat &dstImage, string color) {
@@ -102,8 +126,8 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         }
 
         // x-distance positive when ball on right half and negative when on left half
-        ball.distance = Point(round(DISTANCE_C * (ball.center.x - IMAGE_HALF_WIDTH) / maxY),
-                              round(DISTANCE_A + DISTANCE_B / maxY));
+        ball.distance = FloatPoint(DISTANCE_C * (ball.center.x - IMAGE_HALF_WIDTH) / maxY,
+                              DISTANCE_A + DISTANCE_B / maxY);
 
         float leftDistance = (DISTANCE_C * (minX - IMAGE_HALF_WIDTH) / maxY);
         float rightDistance = (DISTANCE_C * (maxX - IMAGE_HALF_WIDTH) / maxY);
@@ -309,3 +333,173 @@ bool Detector::isPixelInColorRange(Vec3b pixel, int *color) {
     return true;
 }
 
+void Detector::processImage(Mat& image) {
+    // Convert BGR to HSV
+    Mat workedImage;
+    cvtColor(image, workedImage, COLOR_BGR2HSV);
+
+    /// IMAGE DATA FOR OPENCL
+    //std::vector<uint> array(workedImage.rows*workedImage.cols);
+    //array = workedImage.data;
+    //workedImage.col(0).copyTo(array);
+
+    int in[IMAGE_PIXELS*3];
+
+    //workedImage.data
+
+    for (int y = 0; y < IMAGE_HEIGHT; ++y) {
+        for (int x = 0; x < IMAGE_WIDTH; ++x) {
+            Vec3b pixel = workedImage.at<Vec3b>(y, x);
+
+            in[(y*IMAGE_WIDTH + x)*3 + 0] = pixel[0];
+            in[(y*IMAGE_WIDTH + x)*3 + 1] = pixel[1];
+            in[(y*IMAGE_WIDTH + x)*3 + 2] = pixel[2];
+        }
+    }
+
+    //cout << (int) workedImage.data[0] << endl;
+
+    int out[IMAGE_PIXELS];
+
+    Buffer buffer_in(mContext, CL_MEM_READ_ONLY, sizeof(int)*IMAGE_PIXELS*3);
+    Buffer buffer_out(mContext, CL_MEM_WRITE_ONLY, sizeof(int)*IMAGE_PIXELS);
+
+    Kernel kernel(mProgram, "mark_pixels");
+    kernel.setArg(0, buffer_in);
+    kernel.setArg(1, buffer_out);
+
+    /// MARK PIXELS
+    CommandQueue queue(mContext, mDevice);
+    queue.enqueueWriteBuffer(buffer_in, CL_TRUE, 0, sizeof(int)*IMAGE_PIXELS*3, in);
+    queue.enqueueNDRangeKernel(kernel, NullRange, NDRange(IMAGE_WIDTH, IMAGE_HEIGHT), NullRange);
+    queue.enqueueReadBuffer(buffer_out, CL_TRUE, 0, sizeof(int)*IMAGE_PIXELS, out);
+    queue.finish();
+
+    // Test
+    for (int y = 0; y < IMAGE_HEIGHT; ++y) {
+        for (int x = 0; x < IMAGE_WIDTH; ++x) {
+            switch (out[y*IMAGE_WIDTH + x]) {
+                // white
+                case 0:
+                    image.at<Vec3b>(y, x) = Vec3b(255, 255, 255);
+                    //workedImage.at<Vec3b>(y, x) = colorMap["WHITE"];
+                    break;
+                    // yellow
+                case 1:
+                    image.at<Vec3b>(y, x) = Vec3b(0, 255, 255);
+                    //workedImage.at<Vec3b>(y, x) = colorMap["ORANGE"];
+                    break;
+                    // blue
+                case 2:
+                    image.at<Vec3b>(y, x) = Vec3b(255, 0, 0);
+                    //workedImage.at<Vec3b>(y, x) = colorMap["BLUE"];
+                    break;
+                    // black
+                case 3:
+                    image.at<Vec3b>(y, x) = Vec3b(0, 0, 0);
+                    //workedImage.at<Vec3b>(y, x) = colorMap["BLACK"];
+                    break;
+                    // green
+                case 4:
+                    image.at<Vec3b>(y, x) = Vec3b(0, 255, 0);
+                    //workedImage.at<Vec3b>(y, x) = colorMap["GREEN"];
+                    break;
+            }
+        }
+    }
+
+    /// DETECT BLOBS OF SAME COLOR
+    vector<Blob> blobs;
+    vector<BlobLine> previousLines;
+
+    for (int y = 0; y < IMAGE_HEIGHT; ++y) {
+        vector<BlobLine> currentLines;
+
+        int lastColor = out[y*IMAGE_WIDTH];
+        int beginColorIndex = 0;
+
+        for (int x = 1; x < IMAGE_WIDTH + 1; ++x) {
+            int i = y*IMAGE_WIDTH + x;
+            int currentColor = (x == IMAGE_WIDTH) ? -1 : out[i];
+
+            if (lastColor != currentColor) {
+                if ((lastColor == 1 || lastColor == 2) && x - 1 - beginColorIndex > 1) {//} || out[i] == 2) {
+                    BlobLine line;
+                    line.y = y;
+                    line.xi = beginColorIndex;
+                    line.xf = x - 1;
+                    line.color = lastColor;
+                    line.blobIndex = -1;
+
+                    for (int l = 0; l < previousLines.size(); ++l) {
+                        // Skip if colors do not match
+                        if (previousLines[l].color != line.color) {
+                            continue;
+                        }
+
+                        // Skip if lines do not touch
+                        if (previousLines[l].xi > line.xf || previousLines[l].xf < line.xi) {
+                            continue;
+                        }
+
+                        // Connect lines into blob
+                        if (line.blobIndex == -1) {
+                            line.blobIndex = previousLines[l].blobIndex;
+                            //cout << line.blobIndex << endl;
+                        } else if (line.blobIndex != previousLines[l].blobIndex) {
+                            blobs[line.blobIndex].addBlob(blobs[previousLines[l].blobIndex]);
+                            blobs[previousLines[l].blobIndex].mHidden = true;
+                            previousLines[l].blobIndex = line.blobIndex;
+                        }
+                    }
+
+                    // Create new blob?
+                    if (line.blobIndex == -1) {
+                        Blob blob(lastColor);
+                        line.blobIndex = (int) blobs.size();
+                        blobs.push_back(blob);
+                    }
+
+                    // Add line to blob
+                    blobs[line.blobIndex].addLine(line);
+
+                    // Add to current row
+                    currentLines.push_back(line);
+                }
+
+                beginColorIndex = x;
+                lastColor = currentColor;
+            }
+        }
+
+        previousLines = currentLines;
+    }
+
+    // Test
+    for (int i = 0; i < blobs.size(); ++i) {
+        //image.at<Vec3b>(lines[i][0], lines[i][1]) = Vec3b(0, 0, 255);
+        //image.at<Vec3b>(lines[i][0], lines[i][2]) = Vec3b(0, 0, 255);
+        if (blobs[i].mMinY > IMAGE_HEIGHT/2 && blobs[i].mSurface < 50){
+            blobs[i].mHidden = true;
+        }
+
+        if (!blobs[i].mHidden) {
+            line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
+                 Scalar(0, 0, 255));
+            line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                 Scalar(0, 0, 255));
+            line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMinX, blobs[i].mMaxY),
+                 Scalar(0, 0, 255));
+            line(image, Point(blobs[i].mMaxX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                 Scalar(0, 0, 255));
+        }
+    }
+}
+
+FloatPoint Detector::getDistance(Point point) {
+    if (point.y == 0) {
+        return FloatPoint(10000, 10000);
+    }
+
+    return FloatPoint((float) DISTANCE_C * (point.x - IMAGE_HALF_WIDTH) / point.y, (float) (DISTANCE_A + DISTANCE_B / point.y));
+}

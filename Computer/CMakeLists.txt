@@ -4,7 +4,7 @@ set (CMAKE_CXX_COMPILER /usr/bin/g++)
 set (CMAKE_CXX_FLAGS "-fopenmp --std=gnu++11 ${CMAKE_CXX_FLAGS}")
 
 # Source files to compile
-add_executable(Robotex2016 src/main.cpp src/Calibrator.cpp src/Calibrator.h src/Detector.cpp src/Detector.h lib/ConvertUTF.c lib/snippets.cpp src/AI.cpp src/AI.h src/common.h src/Communicator.cpp src/Communicator.h lib/capture.cc lib/crc32.cc lib/iofile.cc lib/v4l_helper.cc lib/vision.cc src/Blob.cpp src/Blob.h)
+add_executable(Robotex2016 src/main.cpp src/Calibrator.cpp src/Calibrator.h src/Detector.cpp src/Detector.h lib/ConvertUTF.c lib/snippets.cpp src/AI.cpp src/AI.h src/common.h src/Communicator.cpp src/Communicator.h lib/capture.cc lib/crc32.cc lib/iofile.cc lib/v4l_helper.cc lib/vision.cc src/Blob.cpp src/Blob.h src/PID.cpp src/PID.h src/FloatPoint.cpp src/FloatPoint.h)
 
 # OpenCV
 find_package(OpenCV REQUIRED)

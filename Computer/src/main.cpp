@@ -165,7 +165,7 @@ int main() {
         int productId = atoi(configuration.GetValue("srf", "PRODUCT_ID", "0"));
         srf.connect(vendorId, productId);
          */
-        srf.connect("/dev/ttyACM1");
+        srf.connect("/dev/ttyACM0");
     } catch (int exception) {
         cout << "Could not create serial RF connection!" << endl;
         //return 0;
@@ -180,7 +180,7 @@ int main() {
         int productId = atoi(configuration.GetValue("motherboard", "PRODUCT_ID", "0"));
         communicator.connect(vendorId, productId);
          */
-        communicator.connect("/dev/ttyACM0");
+        communicator.connect("/dev/ttyACM1");
     } catch (int exception) {
         cout << "Could not create serial connection to motherboard!" << endl;
         //return 0;
@@ -216,7 +216,7 @@ int main() {
     AI ai;
 
     // GAME STATUS
-    bool gameIsOn = true;
+    bool gameIsOn = configuration.GetBoolValue("settings", "AUTOSTART");
 
     // TIMESTAMP
     struct timeval tp;
@@ -251,6 +251,9 @@ int main() {
     for (int i = 0; i < 6; ++i) {
         values[i] = atoi(colors.GetValue(color.c_str(), keys[i].c_str(), NULL));
     }*/
+
+    /// GOAL COLOR
+    int opponentGoalColor = (int) configuration.GetLongValue("settings", "GOAL_COLOR");
 
     /// KERNEL
     vector<Platform> platforms;
@@ -417,7 +420,7 @@ int main() {
 
                         // Create new blob?
                         if (line.blobIndex == -1) {
-                            Blob blob;
+                            Blob blob(lastColor);
                             line.blobIndex = (int) blobs.size();
                             blobs.push_back(blob);
                         }
@@ -437,24 +440,140 @@ int main() {
             previousLines = currentLines;
         }
 
-        // Test
+        /// Find balls and goals
+        vector<Detector::Ball> initialBalls;
+        Point goalCenter;
+
         for (int i = 0; i < blobs.size(); ++i) {
             //image.at<Vec3b>(lines[i][0], lines[i][1]) = Vec3b(0, 0, 255);
             //image.at<Vec3b>(lines[i][0], lines[i][2]) = Vec3b(0, 0, 255);
+
+            /*
             if (blobs[i].mMinY > IMAGE_HEIGHT/2 && blobs[i].mSurface < 50){
                 blobs[i].mHidden = true;
             }
+             */
 
-            if (!blobs[i].mHidden) {
-                line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
-                     Scalar(0, 0, 255));
-                line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
-                     Scalar(0, 0, 255));
-                line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMinX, blobs[i].mMaxY),
-                     Scalar(0, 0, 255));
-                line(image, Point(blobs[i].mMaxX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
-                     Scalar(0, 0, 255));
+            if (blobs[i].mHidden) {
+                continue;
             }
+
+            // Ignore glass on robot
+            if (blobs[i].mMinY > IMAGE_HEIGHT - 50
+                && (blobs[i].mMinX > 75 && blobs[i].mMaxX < 200)
+                   || (blobs[i].mMinX > 445 && blobs[i].mMaxX < 570)) {
+                continue;
+            }
+
+            // Ignore dribbler on robot
+            if (blobs[i].mMinY > IMAGE_HEIGHT - 30 && blobs[i].mMinX > 200 && blobs[i].mMaxX < 445) {
+                continue;
+            }
+
+            // Blob parameters
+            int w = blobs[i].getWidth();
+            int h = blobs[i].getHeight();
+            int A = blobs[i].getSurface();
+            Point center = blobs[i].getCenter();
+
+            // Remove noise
+            if (h <= 1) {
+                continue;
+            }
+
+            // x-distance positive when ball on right half and negative when on left half
+            //Point distance = Point(round(DISTANCE_C * (center.x - IMAGE_HALF_WIDTH) / blobs[i].mMaxY),
+            //                      round(DISTANCE_A + DISTANCE_B / blobs[i].mMaxY));
+
+            FloatPoint leftTop = detector.getDistance(Point(blobs[i].mMinX, blobs[i].mMinY));
+            FloatPoint leftBottom = detector.getDistance(Point(blobs[i].mMinX, blobs[i].mMaxY));
+            FloatPoint rightBottom = detector.getDistance(Point(blobs[i].mMaxX, blobs[i].mMaxY));
+
+            Point size = Point(
+                    (int) round(rightBottom.x - leftBottom.x),
+                    (int) round(leftTop.y - leftBottom.y)
+            );
+
+            //putText(image, itos(size.y), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 255));
+
+            if (blobs[i].mColor == 1 && size.x >= 2 && size.y > 2 && size.y < 100) {
+                Detector::Ball ball;
+                ball.center = center;
+                ball.distance = detector.getDistance(Point(center.x, blobs[i].mMaxY));
+                initialBalls.push_back(ball);
+            }
+
+            // Goal
+            else if (blobs[i].mColor == opponentGoalColor && w > 10) {
+                putText(image, itos(size.y), Point(center.x + 20, center.y), 1, 1, Scalar(0, 255, 0));
+                goalCenter = center;//Point(center.x, blobs[i].mMaxY);
+            }
+
+            // Unknown
+            else {
+                //continue;
+                putText(image, itos(size.y), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 0));
+            }
+
+            line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
+                 Scalar(0, 0, 255));
+            line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                 Scalar(0, 0, 255));
+            line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMinX, blobs[i].mMaxY),
+                 Scalar(0, 0, 255));
+            line(image, Point(blobs[i].mMaxX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                 Scalar(0, 0, 255));
+        }
+
+        vector<Detector::Ball> balls;
+
+        for (int i = 0; i < initialBalls.size(); ++i) {
+            Detector::Ball ball = initialBalls[i];
+
+            /*
+            int x = ball.center.x;
+
+            while (out[x] != 4 && x/IMAGE_WIDTH < ball.center.y) {
+                x += IMAGE_WIDTH;
+            }
+
+            FloatPoint wallDistance = detector.getDistance(Point(ball.center.x, x/IMAGE_WIDTH));
+            float distanceDifference = wallDistance.y - ball.distance.y;
+
+            putText(image, itos((int) distanceDifference), Point(ball.center.x + 20, ball.center.y), 1, 1, Scalar(0, 0, 255));
+
+            if (distanceDifference < 60) {
+                continue;
+            }
+             */
+
+            balls.push_back(ball);
+        }
+
+        /*
+        if (goalCenter.x && goalCenter.y) {
+            line(image, Point(goalCenter.x, 0), Point(goalCenter.x, IMAGE_HEIGHT), Scalar(0, 0, 255), 1);
+            line(image, Point(0, goalCenter.y), Point(IMAGE_WIDTH, goalCenter.y), Scalar(0, 0, 255), 1);
+
+            // Remove balls beyond goal
+            for (int i = 0; i < initialBalls.size(); ++i) {
+                if (initialBalls[i].center.y > goalCenter.y) {
+                    balls.push_back(initialBalls[i]);
+                }
+            }
+        } else {
+            balls = initialBalls;
+        }
+         */
+
+
+
+        // Test
+        line(image, Point(IMAGE_HALF_WIDTH, 0), Point(IMAGE_HALF_WIDTH, IMAGE_HEIGHT), Scalar(255, 0, 255), 1);
+
+        for (int i = 0; i < balls.size(); ++i) {
+            putText(image, itos((int) round(balls[i].distance.x)), Point(balls[i].center.x + 20, balls[i].center.y), 1, 1, Scalar(0, 0, 255));
+            circle(image, balls[i].center, 20, Scalar(0, 0, 255));
         }
 
         /*
@@ -481,128 +600,6 @@ int main() {
         }
          */
 
-        /// FPS
-        gettimeofday(&tp, NULL);
-        long int time = tp.tv_sec * 1000 + tp.tv_usec / 1000;
-        Scalar white = Scalar(255, 255, 255);
-        putText(image, itos(time - startTime), Point(20, 20), 1, 1, white);
-        startTime = time;
-
-        imshow("test", image);
-
-#ifdef TEST
-#pragma omp parallel for
-        for (int y = 0; y < IMAGE_HEIGHT; ++y) {
-            for (int x = 0; x < IMAGE_WIDTH; ++x) {
-                Vec3b pixel = workedImage.at<Vec3b>(y, x);
-                string closestColor = "WHITE";
-
-                // Light color
-                if (pixel[2] >= 200) {
-                    // Most likely yellow or orange
-                    if (pixel[0] < 100) {
-                        /*
-                        float yellowDifference =
-                                pow((float) (pixel[0] - colorMap["YELLOW"][0]) / 180, 2) +
-                                pow((float) (pixel[1] - colorMap["YELLOW"][1]) / 255, 2) +
-                                pow((float) (pixel[2] - colorMap["YELLOW"][2]) / 255, 2);
-
-                        float orangeDifference =
-                                pow((float) (pixel[0] - colorMap["ORANGE"][0]) / 180, 2) +
-                                pow((float) (pixel[1] - colorMap["ORANGE"][1]) / 255, 2) +
-                                pow((float) (pixel[2] - colorMap["ORANGE"][2]) / 255, 2);
-
-                        if (yellowDifference < orangeDifference) {
-                            closestColor = "YELLOW";
-                        } else {
-                            closestColor = "ORANGE";
-                        }
-                         */
-                        closestColor = "ORANGE";
-
-                        // Remember ball pixel
-                        //ballPixels.push_back(Point(x, y));
-                    }
-                }
-
-                // Most likely black, could be blue or green
-                else if (pixel[2] <= 50) {
-                    if (pixel[2] >= 40 && pixel[1] >= 175) {
-                        closestColor = "BLUE";
-                    } else {
-                        closestColor = "BLACK";
-                    }
-                }
-
-                // Most likely blue
-                else if (pixel[0] >= 100 && pixel[0] <= 130 && pixel[1] >= 140) {
-                    closestColor = "BLUE";
-                }
-
-                // Most likely green
-                else {
-                    closestColor = "GREEN";
-                }
-
-                float minDifference = 3;
-
-
-                /*
-                string *colors;
-                int loop;
-
-                if (pixel[2] > 200) {
-
-                    for (int i = 0; i < 2; ++i) {
-                        Vec3b color = colorMap[yellowishColors[i]];
-
-                        float difference =
-                                pow((float) (pixel[0] - color[0]) / 180, 2) +
-                                pow((float) (pixel[1] - color[1]) / 255, 2) +
-                                pow((float) (pixel[2] - color[2]) / 255, 2);
-
-                        if (difference < minDifference) {
-                            minDifference = difference;
-                            closestColor = yellowishColors[i];
-                        }
-                    }
-                } else {
-
-                    for (int i = 0; i < 3; ++i) {
-                        Vec3b color = colorMap[bluishColors[i]];
-
-                        float difference =
-                                pow((float) (pixel[0] - color[0]) / 180, 2) +
-                                pow((float) (pixel[1] - color[1]) / 255, 2) +
-                                pow((float) (pixel[2] - color[2]) / 255, 2);
-
-                        if (difference < minDifference) {
-                            minDifference = difference;
-                            closestColor = bluishColors[i];
-                        }
-                    }
-                }
-                 */
-
-                /*
-                for (auto &color : colorMap) {
-                    float difference =
-                            pow((float) (pixel[0] - color.second[0]) / 180, 2) +
-                            pow((float) (pixel[1] - color.second[1]) / 255, 2) +
-                            pow((float) (pixel[2] - color.second[2]) / 255, 2);
-
-                    if (difference < minDifference) {
-                        minDifference = difference;
-                        closestColor = color.first;
-                    }
-                }
-                 */
-
-                workedImage.at<Vec3b>(y, x) = colorMap[closestColor];
-            }
-        }
-#endif
-
         /*
         /// FIND BALLS
         vector<Detector::Ball> balls = detector.findBalls(workedImage);
@@ -610,6 +607,7 @@ int main() {
         /// FIND GOALS
         //vector<vector<Point> > contours = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
         Point goalCenter = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
+         */
 
         /// REFEREE COMMANDS
         string refereeCommand = srf.getRefereeCommand();
@@ -626,9 +624,9 @@ int main() {
         /// ASK AI WHAT TO DO
         gettimeofday(&tp, NULL);
         long int time = tp.tv_sec * 1000 + tp.tv_usec / 1000;
-        string command = ai.getCommand(time - startTime);
+        string command = ai.getCommand((int) (time - startTime));
         Scalar white = Scalar(255, 255, 255);
-        putText(workedImage, itos(time - startTime), Point(20, 20), 1, 1, white);
+        putText(image, itos((int) (time - startTime)), Point(20, 20), 1, 1, white);
         startTime = time;
 
         if (command.length())
@@ -639,8 +637,8 @@ int main() {
         }
 
         //cvtColor(workedImage, workedImage, COLOR_HSV2BGR);
-        imshow("test", workedImage);
-         */
+
+        imshow("test", image);
 
         // Close when pressing space or esc
         if (waitKey(30) > 0) {

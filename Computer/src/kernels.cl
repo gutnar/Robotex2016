@@ -8,29 +8,28 @@ __kernel void ndrange_parallelism () {
 __kernel void mark_pixels (__global const int* in, __global int* out) {
     int x = get_global_id(0);
     int y = get_global_id(1);
+
     int i = y*640 + x;
     int j = i*3;
+
+    // Glass
+    if (y > 430 && ((x > 75 && x < 200) || (x > 445 && x < 570))) {
+        out[i] = 4;
+        return;
+    }
+
+    // Dribbler
+    if (y > 450 && x >= 200 && x <= 445) {
+        out[i] = 4;
+        return;
+    }
 
     int h = in[j + 0];
     int s = in[j + 1];
     int v = in[j + 2];
 
-    /*
-    if (v < 50) {
-        out[y*640 + x] = 0;
-    } else if (v < 100) {
-         out[y*640 + x] = 1;
-     } else if (v < 150) {
-          out[y*640 + x] = 2;
-      } else if (v < 200) {
-       out[y*640 + x] = 3;
-   } else {
-            out[y*640 + x] = 4;
-        }
-    */
-
     // Light color
-    if (v >= 200) {
+    if (v >= 175) {
         // Most likely yellow or orange
         if (h < 100) {
             out[i] = 1; // orange = 1

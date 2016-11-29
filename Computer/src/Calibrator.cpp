@@ -13,6 +13,9 @@ void Calibrator::onMouse(int event, int x, int y)
 
     if (event == EVENT_LBUTTONDOWN)
     {
+        //cout << abs(IMAGE_HALF_WIDTH - x) << " " << (IMAGE_HEIGHT - y) << endl;
+        cout << x << " " << y << endl;
+
         vector<Point> polygon;
         polygon.push_back(Point(x, y));
         mPolygons.push_back(polygon);
@@ -115,6 +118,7 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
         while (1)
         {
             cap >> mCalibrationSrc;
+            line(mCalibrationSrc, Point(IMAGE_HALF_WIDTH, 0), Point(IMAGE_HALF_WIDTH, IMAGE_HEIGHT), Scalar(255, 0, 255), 1);
             imshow(mWindowName, mCalibrationSrc);
 
             if (waitKey(30) > 0)

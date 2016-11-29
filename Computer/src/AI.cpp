@@ -6,7 +6,6 @@
 
 AI::AI()
 {
-
 }
 
 void AI::notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured, Point goalCenter)
@@ -81,21 +80,25 @@ string AI::getCommand(int dt)
                 mState = GET_BALL_STATE;
             } else
             {
-                return "sd10:10:10:0";
+                return "sd25:25:25:0";
             }
             break;
         case SHOOT_STATE:
+            /*
             if (!mDribblerStopped)
             {
                 mDribblerStopped = true;
-                return "d0";
+                return "sd0:0:0:0\nd0";
             }
+             */
+
+            mDribblerRuntime += dt;
 
             if (!mKicked)
             {
                 mKicked = true;
                 mState = CHOOSE_BALL_STATE;
-                return "k1000\nd0\nsd0:0:0:0";
+                return "k1500\nd0\nsd0:0:0:0";
 
                 /*
                 mDribblerRuntime += dt;
@@ -109,8 +112,6 @@ string AI::getCommand(int dt)
                 }
                  */
             }
-
-            mDribblerRuntime += dt;
 
             if (mDribblerRuntime > 1000)
             {
@@ -148,27 +149,40 @@ string AI::getCommand(int dt)
                 mState = FIND_BALLS_STATE;
             } else
             {
-                // pid
+                /*
                 float error = mTargetBall->distance.x;
                 mIntegral += error * dt;
                 float derivative = (error - mPreviousError) / dt;
                 float output = (0.05 * error + 0.20 * error + 0.05 * derivative) * 3;
                 mPreviousError = error;
+                 */
+                if (mGoalCenter.x > 0 && mGoalCenter.y > 0) {
+                }
+
+
+                int forwardSpeed = (int) mForwardPid.tick(dt, mTargetBall->distance.y) * 4;
+                int turnSpeed = (int) mTurnPid.tick(dt, mTargetBall->distance.x) * 3;
+
+                if (forwardSpeed > 100) {
+                    forwardSpeed = 100;
+                }
 
                 float distance = sqrt(pow(mTargetBall->distance.x, 2) + pow(mTargetBall->distance.y, 2));
 
-                if (distance < 15)
+                //cout << mTargetBall->distance.x << endl;
+
+                if (mTargetBall->distance.y < 15)
                 {
-                    if (abs(mTargetBall->distance.x) < 2)
+                    if (turnSpeed == 0 || abs(mTargetBall->distance.x) < 0.5)
                     {
                         mState = DRIBBLE_STATE;
                     } else
                     {
-                        return "sd" + itos(2 * output) + ":" + itos(2 * output) + ":" + itos(2 * output) + ":0";
+                        return "sd" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":" + itos(turnSpeed) + ":0";
                     }
                 } else
                 {
-                    return "sd" + itos(-20) + ":" + itos(20) + ":" + itos(output) + ":0";
+                    return "sd" + itos(-forwardSpeed) + ":" + itos(forwardSpeed) + ":" + itos(turnSpeed) + ":0";
                 }
 
                 /*
@@ -191,13 +205,18 @@ string AI::getCommand(int dt)
                     return "d0";
                 }
 
-                return "sd-7:7:0:0\nd1";
+                /*
+                int turnSpeed = (int) mTurnPid.tick(dt, mTargetBall->distance.x) * 3;
+                return "sd-10:10:" + itos(turnSpeed) + ":0\nd1";
+                 */
+
+                return "sd-10:10:0:0\nd1";
             }
             break;
         case FIND_GOAL_STATE:
             if (mGoalCenter.x == 0 && mGoalCenter.y == 0)
             {
-                mIntegral = 0;
+                mTurnPid.reset();
 
                 if (mGoalWasLeft)
                 {

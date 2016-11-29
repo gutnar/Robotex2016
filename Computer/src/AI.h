@@ -8,6 +8,7 @@
 
 #include "Detector.h"
 #include "common.h"
+#include "PID.h"
 
 class AI
 {
@@ -40,6 +41,9 @@ private:
     // PID
     float mIntegral;
     float mPreviousError;
+
+    PID mTurnPid;
+    PID mForwardPid;
 
     // Has the dribbler been stopped and has the kick command been sent during a shoot state
     bool mDribblerStopped;
