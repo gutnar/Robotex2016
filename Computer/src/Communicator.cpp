@@ -60,14 +60,21 @@ void Communicator::sendCommand(string command) {
 
 bool Communicator::isBallCaptured() {
     sp_nonblocking_read(mPort, mInfraredBuf, 3);
+    bool captured = mInfraredBuf[1] == '1'; // has ball
 
-    if (mInfraredBuf[1] == '1') {
-        mBallCapturedFrames++;
+    if (captured != mBallCaptured) {
+        if (++mBallCapturedChangedFrames == 10) {
+            mBallCaptured = captured;
+        }
     } else {
-        mBallCapturedFrames = 0;
+        mBallCapturedChangedFrames = 0;
     }
 
-    return mBallCapturedFrames == 10;
+    if (!captured) {
+        return false;
+    }
+
+    return mBallCaptured;
 }
 
 string Communicator::getRefereeCommand() {

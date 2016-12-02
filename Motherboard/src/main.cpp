@@ -170,12 +170,13 @@ void parseCommand(char *command) {
   }
 
   else if (command[0] == 'd') {
+    /*
     if (command[1] == '0') {
       pwm1.pulsewidth_us(100);
     } else if (command[1] == '1') {
       pwm1.pulsewidth_us(268);
-    } else {
-      pwm1.write((float) atoi(command + 1)/100);
+    } else*/ {
+      pwm1.pulsewidth_us(atoi(command + 1));
     }
     //pwm1.pulsewidth_us((int) atoi(command+1));
     //serial.printf("sending %d\n", (int) atoi(command+1));
@@ -198,7 +199,7 @@ void parseCommand(char *command) {
   }
 
   else if (command[0] == 'i') {
-    serial.printf("%d\n", infrared.read());
+    serial.printf("i%d\n", infrared.read());
   }
 
   else if (command[0] == 'c') {

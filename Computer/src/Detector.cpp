@@ -121,9 +121,11 @@ vector<Detector::Ball> Detector::findBalls(Mat &srcImage) {
         ball.center = Point(sumX / contourSize, sumY / contourSize);
 
         /// CHECK IF BALL IS WITHIN BORDERS
+        /*
         if (!isBallWithinBorders(srcImage, ball)) {
             continue;
         }
+         */
 
         // x-distance positive when ball on right half and negative when on left half
         ball.distance = FloatPoint(DISTANCE_C * (ball.center.x - IMAGE_HALF_WIDTH) / maxY,
@@ -231,96 +233,62 @@ Point Detector::findGoal(Mat &srcImage, string color) {
     return center;
 }
 
-bool Detector::isBallWithinBorders(Mat &srcImage, Detector::Ball ball) {
-    //Mat filteredImage;
-    //filterColor(srcImage, filteredImage, "BLACK");
-    //imshow("detector", srcImage);
-
-    //cout << "hello" << endl;
-
-    //for (int x = 0; x < srcImage.cols; ++x) {
+bool Detector::isBallWithinBorders(int out[IMAGE_PIXELS], Detector::Ball ball) {
     int sequentialWhitePixels = 0;
     int sequentialBlackPixels = 0;
     int sequentialOtherPixels = 0;
 
-    for (int y = srcImage.rows - 1; y > ball.center.y; --y) {
-        Vec3b pixel = srcImage.at<Vec3b>(y, ball.center.x);
+    for (int y = IMAGE_HEIGHT - 1; y > ball.center.y; --y) {
+        int color = out[y*IMAGE_WIDTH + ball.center.x];
 
-        //cout << pixel[0] << " " << pixel[1] << " " << pixel[2] << endl;
-
-        if (isPixelInColorRange(pixel, mWhite)) {
+        if (color == 0) { // white
             sequentialWhitePixels++;
             sequentialBlackPixels = 0;
             sequentialOtherPixels = 0;
-        } else if (isPixelInColorRange(pixel, mBlack)) {
+        } else if (color == 2 || color == 3) { // black or blue
             sequentialBlackPixels++;
             sequentialOtherPixels = 0;
         } else {
-            // TODO: ball on border
-            //srcImage.at<Vec3b>(y, ball.center.x) = Vec3b(255, 0, 255);
-
             if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2) {
                 return false;
-                cout << sequentialWhitePixels << " " << sequentialBlackPixels << endl;
-                break;
             }
 
-            if (++sequentialOtherPixels > 2) {
+            if (++sequentialOtherPixels > 6) {
                 sequentialWhitePixels = 0;
-                sequentialWhitePixels = 0;
+                sequentialBlackPixels = 0;
             }
         }
     }
-    //}
-
-    //imshow("detector", srcImage);
 
     return true;
 }
 
-int Detector::findBorder(Mat &srcImage, int x) {
-    //Mat filteredImage;
-    //filterColor(srcImage, filteredImage, "BLACK");
-    //imshow("detector", srcImage);
-
-    //cout << "hello" << endl;
-
-    //for (int x = 0; x < srcImage.cols; ++x) {
+int Detector::findBorder(int out[IMAGE_PIXELS], int x) {
     int sequentialWhitePixels = 0;
     int sequentialBlackPixels = 0;
     int sequentialOtherPixels = 0;
 
-    for (int y = srcImage.rows - 1; y >= 0; --y) {
-        Vec3b pixel = srcImage.at<Vec3b>(y, x);
+    for (int y = IMAGE_HEIGHT - 1; y >= 0; --y) {
+        int color = out[y*IMAGE_WIDTH + x];
 
-        //cout << pixel[0] << " " << pixel[1] << " " << pixel[2] << endl;
-
-        if (isPixelInColorRange(pixel, mWhite)) {
+        if (color == 0) { // white
             sequentialWhitePixels++;
             sequentialBlackPixels = 0;
             sequentialOtherPixels = 0;
-        } else if (isPixelInColorRange(pixel, mBlack)) {
+        } else if (color == 2 || color == 3) { // black or blue
             sequentialBlackPixels++;
             sequentialOtherPixels = 0;
         } else {
-            // TODO: ball on border
-            //srcImage.at<Vec3b>(y, ball.center.x) = Vec3b(255, 0, 255);
-
             if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2) {
-                return y;
-                cout << sequentialWhitePixels << " " << sequentialBlackPixels << endl;
-                break;
+                return y + sequentialBlackPixels + sequentialWhitePixels + sequentialOtherPixels;
             }
 
-            if (++sequentialOtherPixels > 2) {
+            if (++sequentialOtherPixels > 6) {
                 sequentialWhitePixels = 0;
-                sequentialWhitePixels = 0;
+                sequentialBlackPixels = 0;
             }
         }
     }
-    //}
-
-    //imshow("detector", srcImage);
 
     return -1;
 }

@@ -43,7 +43,9 @@ public:
     int getWidth();
     int getHeight();
     int getSurface();
+
     cv::Point getCenter();
+    cv::Point getMassCenter();
 };
 
 

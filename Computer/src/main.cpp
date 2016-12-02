@@ -21,140 +21,14 @@ using namespace cv;
 using namespace std;
 using namespace cl;
 
-int main3()
-{
-    int x = 400;
-    int y = 30;
-    int z = 20;
-
-    // GPU 3d loop
-    vector<Platform> platforms;
-    vector<Device> devices;
-    vector<Kernel> kernels;
-
-    // create platform, context and command queue
-    Platform::get(&platforms);
-    platforms[0].getDevices(CL_DEVICE_TYPE_GPU, &devices);
-    Context context(devices);
-    CommandQueue queue(context, devices[0]);
-
-    // load opencl source
-    std::ifstream cl_file("src/kernels.cl");
-    std::string cl_string(std::istreambuf_iterator<char>(cl_file),
-                          (std::istreambuf_iterator<char>()));
-    Program::Sources source(1, std::make_pair(cl_string.c_str(),
-                                              cl_string.length() + 1));
-
-    // create program and kernel and set kernel arguments
-    Program program(context, source);
-    program.build(devices);
-    Kernel kernel(program, "ndrange_parallelism");
-
-    // execute kernel and wait for completion
-    NDRange global_work_size(x, y, z);
-    queue.enqueueNDRangeKernel(kernel, NullRange, global_work_size, NullRange);
-    queue.finish();
-
-    return 0;
-}
-
-//#define PIXEL_FORMAT V4L2_PIX_FMT_YUYV
-
-int main2()
-{
-    /// START VIDEO CAPTURE
-    //VideoCapture cvCap;
-    //cvCap.open(0);
-
-    /*
-    /// MAIN LOOP
-    while (true) {
-        /// IMAGE MANIPULATION
-        cvCap >> image;
-
-        //circle(image, Point(320, 240), 2, Scalar(255, 0, 255));
-        imshow("test", image);
-
-        // Close when pressing space or esc
-        if (waitKey(30) > 0) {
-            break;
-        }
-    }
-
-    cvCap.release();
-     */
-
-    /*
-    circle(image, Point(320, 240), 2, Scalar(255, 0, 255));
-    imshow("test", image);
-     */
-
-    namedWindow("test");
-
-    Capture cap;
-    LowVision vision;
-
-    const char *video_device = "/dev/video0";
-    const int input_idx = 1;
-    const int width  = IMAGE_WIDTH;
-    const int height = IMAGE_HEIGHT;
-
-    // initialize
-    cap.init(video_device, input_idx, width, height, V4L2_PIX_FMT_YUYV);
-    char tmap_file[64];
-    snprintf(tmap_file,64,"config/thresh.%d%d%d.tmap.gz",bits_y,bits_u,bits_v);
-    vision.init("config/colors.txt",tmap_file,width,height);
-
-    // main loop
-    while (true) {
-        // capture and process a frame
-        const Capture::Image *img = cap.captureFrame();
-
-        if (img != NULL) {
-            vision_image cmv_img;
-            cmv_img.buf    = (pixel*)(img->data);
-            cmv_img.width  = img->width;
-            cmv_img.height = img->height;
-            cmv_img.pitch  = img->bytesperline;
-            cmv_img.field  = img->field;
-
-            vision.processFrame(cmv_img);
-
-            //Mat image(IMAGE_WIDTH, IMAGE_HEIGHT, CV_8UC3, Scalar(0, 0, 0));
-            Mat image = Mat::zeros(IMAGE_WIDTH, IMAGE_HEIGHT, CV_8U);
-
-            const Region* region = NULL;
-
-            for (region = vision.getRegions(1); region != NULL; region = region->next) {
-                circle(image, Point(region->x1, region->y1), 5, Scalar(255, 0, 255));
-            }
-
-            //cout << vision.getRegions(1)->next->area << endl;
-
-            cap.releaseFrame(img);
-
-            imshow("test", image);
-        } else {
-            break;
-        }
-
-        if (waitKey(30) > 0) {
-            break;
-        }
-    }
-
-    // shutdown
-    vision.close();
-    cap.close();
-
-    return(0);
-}
 
 int main() {
     /// LOAD CONFIGURATION
     CSimpleIniA configuration;
     configuration.SetUnicode();
     configuration.LoadFile("configuration.ini");
+
+    bool testingMode = configuration.GetBoolValue("settings", "TESTING");
 
     /// CREATE SRF COMMUNICATOR
     Communicator srf(configuration.GetValue("settings", "FIELD_ID")[0], configuration.GetValue("settings", "ROBOT_ID")[0]);
@@ -165,7 +39,7 @@ int main() {
         int productId = atoi(configuration.GetValue("srf", "PRODUCT_ID", "0"));
         srf.connect(vendorId, productId);
          */
-        srf.connect("/dev/ttyACM0");
+        srf.connect("/dev/ttyACM2");
     } catch (int exception) {
         cout << "Could not create serial RF connection!" << endl;
         //return 0;
@@ -180,11 +54,14 @@ int main() {
         int productId = atoi(configuration.GetValue("motherboard", "PRODUCT_ID", "0"));
         communicator.connect(vendorId, productId);
          */
-        communicator.connect("/dev/ttyACM1");
+        communicator.connect("/dev/ttyACM0");
     } catch (int exception) {
         cout << "Could not create serial connection to motherboard!" << endl;
         //return 0;
     }
+
+    // Start charging and get initial ball detector status
+    communicator.send("c1\ni");
 
     /// START VIDEO CAPTURE
     VideoCapture cap;
@@ -213,7 +90,15 @@ int main() {
     //namedWindow("BALLS");
 
     /// SET UP AI
-    AI ai;
+    AI ai(detector);
+
+    /*
+    for (int d = 0; d < 360; d += 15) {
+        cout << d << " " << ai.getSpeedCommand(100, (float) d/180*3.1415926) << endl;
+    }
+
+    return 0;
+     */
 
     // GAME STATUS
     bool gameIsOn = configuration.GetBoolValue("settings", "AUTOSTART");
@@ -223,37 +108,25 @@ int main() {
     gettimeofday(&tp, NULL);
     long int startTime = tp.tv_sec * 1000 + tp.tv_usec / 1000;
 
-    // Start charging
-    communicator.sendCommand("c1");
-
     // Load color data
-    map<string, Vec3b> colorMap;
-    string yellowishColors[2] = {"ORANGE", "YELLOW"};
-    string bluishColors[3] = {"BLUE", "GREEN", "BLACK"};
+    int colorMeans[NUMBER_OF_COLORS*3];
+    int colorRanges[NUMBER_OF_COLORS*3*2];
     string keys[6] = {"H_MIN", "H_MAX", "S_MIN", "S_MAX", "V_MIN", "V_MAX"};
 
     for (int i = 0; i < NUMBER_OF_COLORS; ++i) {
-        int colorMeans[3];
+        for (int j = 0; j < 6; ++j) {
+            colorRanges[i*6+j] = (int) colorsIni.GetLongValue(COLORS[i].c_str(), keys[j].c_str());
 
-        for (int j = 0; j < 6; j += 2) {
-            colorMeans[j / 2] = (atoi(colorsIni.GetValue(COLORS[i].c_str(), keys[j].c_str(), NULL)) +
-                                 atoi(colorsIni.GetValue(COLORS[i].c_str(), keys[j + 1].c_str(), NULL))) / 2;
+            if (j % 2 == 0) {
+                colorMeans[i * 3 + j / 2] = (atoi(colorsIni.GetValue(COLORS[i].c_str(), keys[j].c_str())) +
+                                             atoi(colorsIni.GetValue(COLORS[i].c_str(), keys[j + 1].c_str()))) / 2;
+            }
         }
-
-        colorMap.insert(pair<string, Vec3b>(COLORS[i], Vec3b((uchar) colorMeans[0], (uchar) colorMeans[1],
-                                                                   (uchar) colorMeans[2])));
     }
 
-    /*
-    int values[6];
-    string keys[6] = {"H_MIN","H_MAX","S_MIN","S_MAX","V_MIN","V_MAX"};
-
-    for (int i = 0; i < 6; ++i) {
-        values[i] = atoi(colors.GetValue(color.c_str(), keys[i].c_str(), NULL));
-    }*/
-
-    /// GOAL COLOR
-    int opponentGoalColor = (int) configuration.GetLongValue("settings", "GOAL_COLOR");
+    /// GOAL COLORS
+    int ownGoalColor = (int) configuration.GetLongValue("settings", "OWN_GOAL_COLOR");
+    int opponentGoalColor = (int) configuration.GetLongValue("settings", "OPPONENT_GOAL_COLOR");
 
     /// KERNEL
     vector<Platform> platforms;
@@ -295,13 +168,8 @@ int main() {
         //namedWindow("cam");
         //imshow("cam", image);
 
-        //cout << image.cols << endl;
-
         // Convert BGR to HSV
         cvtColor(image, workedImage, COLOR_BGR2HSV);
-
-        // Pixels of ball color
-        //vector<Point> ballPixels;
 
         /// IMAGE DATA FOR OPENCL
         //std::vector<uint> array(workedImage.rows*workedImage.cols);
@@ -328,47 +196,59 @@ int main() {
 
         Buffer buffer_in(context, CL_MEM_READ_ONLY, sizeof(int)*IMAGE_PIXELS*3);
         Buffer buffer_out(context, CL_MEM_WRITE_ONLY, sizeof(int)*IMAGE_PIXELS);
+        //Buffer buffer_colors(context, CL_MEM_READ_ONLY, sizeof(int)*NUMBER_OF_COLORS*3);
+        Buffer buffer_colors(context, CL_MEM_READ_ONLY, sizeof(int)*NUMBER_OF_COLORS*6);
 
         Kernel kernel(program, "mark_pixels");
         kernel.setArg(0, buffer_in);
         kernel.setArg(1, buffer_out);
+        kernel.setArg(2, buffer_colors);
 
         /// MARK PIXELS
         CommandQueue queue(context, devices[0]);
         queue.enqueueWriteBuffer(buffer_in, CL_TRUE, 0, sizeof(int)*IMAGE_PIXELS*3, in);
+        //queue.enqueueWriteBuffer(buffer_colors, CL_TRUE, 0, sizeof(int)*NUMBER_OF_COLORS*3, colorMeans);
+        queue.enqueueWriteBuffer(buffer_colors, CL_TRUE, 0, sizeof(int)*NUMBER_OF_COLORS*6, colorRanges);
         queue.enqueueNDRangeKernel(kernel, NullRange, NDRange(IMAGE_WIDTH, IMAGE_HEIGHT), NullRange);
         queue.enqueueReadBuffer(buffer_out, CL_TRUE, 0, sizeof(int)*IMAGE_PIXELS, out);
         queue.finish();
 
         // Test
-        for (int y = 0; y < IMAGE_HEIGHT; ++y) {
-            for (int x = 0; x < IMAGE_WIDTH; ++x) {
-                switch (out[y*IMAGE_WIDTH + x]) {
-                    // white
-                    case 0:
-                        image.at<Vec3b>(y, x) = Vec3b(255, 255, 255);
-                        //workedImage.at<Vec3b>(y, x) = colorMap["WHITE"];
-                        break;
-                    // yellow
-                    case 1:
-                        image.at<Vec3b>(y, x) = Vec3b(0, 255, 255);
-                        //workedImage.at<Vec3b>(y, x) = colorMap["ORANGE"];
-                        break;
-                    // blue
-                    case 2:
-                        image.at<Vec3b>(y, x) = Vec3b(255, 0, 0);
-                        //workedImage.at<Vec3b>(y, x) = colorMap["BLUE"];
-                        break;
-                    // black
-                    case 3:
-                        image.at<Vec3b>(y, x) = Vec3b(0, 0, 0);
-                        //workedImage.at<Vec3b>(y, x) = colorMap["BLACK"];
-                        break;
-                    // green
-                    case 4:
-                        image.at<Vec3b>(y, x) = Vec3b(0, 255, 0);
-                        //workedImage.at<Vec3b>(y, x) = colorMap["GREEN"];
-                        break;
+        if (testingMode) {
+            for (int y = 0; y < IMAGE_HEIGHT; ++y) {
+                for (int x = 0; x < IMAGE_WIDTH; ++x) {
+                    switch (out[y * IMAGE_WIDTH + x]) {
+                        // white
+                        case 0:
+                            image.at<Vec3b>(y, x) = Vec3b(255, 255, 255);
+                            //workedImage.at<Vec3b>(y, x) = colorMap["WHITE"];
+                            break;
+                            // yellow
+                        case 1:
+                            image.at<Vec3b>(y, x) = Vec3b(0, 255, 255);
+                            //workedImage.at<Vec3b>(y, x) = colorMap["YELLOW"];
+                            break;
+                            // blue
+                        case 2:
+                            image.at<Vec3b>(y, x) = Vec3b(255, 0, 0);
+                            //workedImage.at<Vec3b>(y, x) = colorMap["BLUE"];
+                            break;
+                            // black
+                        case 3:
+                            image.at<Vec3b>(y, x) = Vec3b(0, 0, 0);
+                            //workedImage.at<Vec3b>(y, x) = colorMap["BLACK"];
+                            break;
+                            // green
+                        case 4:
+                            image.at<Vec3b>(y, x) = Vec3b(0, 255, 0);
+                            //workedImage.at<Vec3b>(y, x) = colorMap["GREEN"];
+                            break;
+                            // orange
+                        case 5:
+                            image.at<Vec3b>(y, x) = Vec3b(0, 165, 255);
+                            //image.at<Vec3b>(y, x) = Vec3b()
+                            break;
+                    }
                 }
             }
         }
@@ -388,7 +268,7 @@ int main() {
                 int currentColor = (x == IMAGE_WIDTH) ? -1 : out[i];
 
                 if (lastColor != currentColor) {
-                    if ((lastColor == 1 || lastColor == 2) && x - 1 - beginColorIndex > 1) {//} || out[i] == 2) {
+                    if ((lastColor == 1 || lastColor == 2 || lastColor == 5) && x - 1 - beginColorIndex > 1) {//} || out[i] == 2) {
                         BlobLine line;
                         line.y = y;
                         line.xi = beginColorIndex;
@@ -402,8 +282,17 @@ int main() {
                                 continue;
                             }
 
+                            /*
                             // Skip if lines do not touch
                             if (previousLines[l].xi > line.xf || previousLines[l].xf < line.xi) {
+                                continue;
+                            }
+                             */
+
+                            // Skip if touching is too small
+                            int common = min(previousLines[l].xf, line.xf) - max(previousLines[l].xi, line.xi);
+
+                            if (common < 2) {
                                 continue;
                             }
 
@@ -440,14 +329,12 @@ int main() {
             previousLines = currentLines;
         }
 
-        /// Find balls and goals
+        /// FIND BALLS AND GOALS
         vector<Detector::Ball> initialBalls;
         Point goalCenter;
+        int largestGoalSurface = 1500;
 
         for (int i = 0; i < blobs.size(); ++i) {
-            //image.at<Vec3b>(lines[i][0], lines[i][1]) = Vec3b(0, 0, 255);
-            //image.at<Vec3b>(lines[i][0], lines[i][2]) = Vec3b(0, 0, 255);
-
             /*
             if (blobs[i].mMinY > IMAGE_HEIGHT/2 && blobs[i].mSurface < 50){
                 blobs[i].mHidden = true;
@@ -458,33 +345,19 @@ int main() {
                 continue;
             }
 
-            // Ignore glass on robot
-            if (blobs[i].mMinY > IMAGE_HEIGHT - 50
-                && (blobs[i].mMinX > 75 && blobs[i].mMaxX < 200)
-                   || (blobs[i].mMinX > 445 && blobs[i].mMaxX < 570)) {
-                continue;
-            }
-
-            // Ignore dribbler on robot
-            if (blobs[i].mMinY > IMAGE_HEIGHT - 30 && blobs[i].mMinX > 200 && blobs[i].mMaxX < 445) {
-                continue;
-            }
-
             // Blob parameters
             int w = blobs[i].getWidth();
             int h = blobs[i].getHeight();
             int A = blobs[i].getSurface();
-            Point center = blobs[i].getCenter();
+
+            Point center = blobs[i].getMassCenter();
 
             // Remove noise
             if (h <= 1) {
                 continue;
             }
 
-            // x-distance positive when ball on right half and negative when on left half
-            //Point distance = Point(round(DISTANCE_C * (center.x - IMAGE_HALF_WIDTH) / blobs[i].mMaxY),
-            //                      round(DISTANCE_A + DISTANCE_B / blobs[i].mMaxY));
-
+            // Get blob size in centimeters
             FloatPoint leftTop = detector.getDistance(Point(blobs[i].mMinX, blobs[i].mMinY));
             FloatPoint leftBottom = detector.getDistance(Point(blobs[i].mMinX, blobs[i].mMaxY));
             FloatPoint rightBottom = detector.getDistance(Point(blobs[i].mMaxX, blobs[i].mMaxY));
@@ -496,17 +369,69 @@ int main() {
 
             //putText(image, itos(size.y), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 255));
 
-            if (blobs[i].mColor == 1 && size.x >= 2 && size.y > 2 && size.y < 100) {
-                Detector::Ball ball;
-                ball.center = center;
-                ball.distance = detector.getDistance(Point(center.x, blobs[i].mMaxY));
-                initialBalls.push_back(ball);
+            // Check if blob is a ball
+            if (blobs[i].mColor == 5 && size.x >= 1 && size.x <= 10 && size.y > 1 && size.y < 100) {
+                int greenNeighbours = 0;
+
+                for (int j = 1; j < 2; ++j) {
+                    if (out[(blobs[i].mMinY - j) * IMAGE_WIDTH + center.x] == 4) {
+                        ++greenNeighbours;
+                    }
+
+                    if (out[(blobs[i].mMaxY + j) * IMAGE_WIDTH + center.x] == 4) {
+                        ++greenNeighbours;
+                    }
+
+                    if (out[center.y * IMAGE_WIDTH + (blobs[i].mMinX - j)] == 4) {
+                        ++greenNeighbours;
+                    }
+
+                    if (out[center.y * IMAGE_WIDTH + (blobs[i].mMaxX + j)] == 4) {
+                        ++greenNeighbours;
+                    }
+                }
+
+                if (greenNeighbours > 1) {
+                    Detector::Ball ball;
+                    ball.center = center;
+                    ball.distance = detector.getDistance(Point(center.x, blobs[i].mMaxY));
+                    initialBalls.push_back(ball);
+                    //continue;
+                }
             }
 
-            // Goal
-            else if (blobs[i].mColor == opponentGoalColor && w > 10) {
-                putText(image, itos(size.y), Point(center.x + 20, center.y), 1, 1, Scalar(0, 255, 0));
-                goalCenter = center;//Point(center.x, blobs[i].mMaxY);
+            // Check if blob is a goal
+            else if (blobs[i].mColor == opponentGoalColor && h > 25 && h < 200 && size.x > 10 && A > largestGoalSurface) {
+                // It is probably not the goal and the blob is a robot if own goal color is directly above or below
+                int ownColorNeighbours = 0;
+
+                for (int j = 0; j < (blobs[i].mMaxX - center.y + 5); ++j) {
+                    if (out[(center.y - j) * IMAGE_WIDTH + center.x] == ownGoalColor) {
+                        ++ownColorNeighbours;
+                    }
+
+                    if (out[(center.y + j) * IMAGE_WIDTH + center.x] == ownGoalColor) {
+                        ++ownColorNeighbours;
+                    }
+                }
+
+                if (ownColorNeighbours < (blobs[i].mMaxX - center.y)/2) {
+                    // Mark as current goal
+                    largestGoalSurface = A;
+                    putText(image, itos(A) + " " + itos(h), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 0));
+                    goalCenter = center;//Point(center.x, blobs[i].mMaxY);
+
+                    line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
+                         Scalar(0, 0, 0));
+                    line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                         Scalar(0, 0, 0));
+                    line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMinX, blobs[i].mMaxY),
+                         Scalar(0, 0, 0));
+                    line(image, Point(blobs[i].mMaxX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                         Scalar(0, 0, 0));
+
+                    //continue;
+                }
             }
 
             // Unknown
@@ -514,100 +439,44 @@ int main() {
                 //continue;
                 putText(image, itos(size.y), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 0));
             }
-
-            line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
-                 Scalar(0, 0, 255));
-            line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
-                 Scalar(0, 0, 255));
-            line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMinX, blobs[i].mMaxY),
-                 Scalar(0, 0, 255));
-            line(image, Point(blobs[i].mMaxX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
-                 Scalar(0, 0, 255));
         }
 
+        // Filter actual balls
         vector<Detector::Ball> balls;
 
         for (int i = 0; i < initialBalls.size(); ++i) {
             Detector::Ball ball = initialBalls[i];
 
-            /*
-            int x = ball.center.x;
-
-            while (out[x] != 4 && x/IMAGE_WIDTH < ball.center.y) {
-                x += IMAGE_WIDTH;
-            }
-
-            FloatPoint wallDistance = detector.getDistance(Point(ball.center.x, x/IMAGE_WIDTH));
-            float distanceDifference = wallDistance.y - ball.distance.y;
-
-            putText(image, itos((int) distanceDifference), Point(ball.center.x + 20, ball.center.y), 1, 1, Scalar(0, 0, 255));
-
-            if (distanceDifference < 60) {
+            if (!detector.isBallWithinBorders(out, ball)) {
                 continue;
             }
-             */
 
             balls.push_back(ball);
         }
 
-        /*
+        /// TRY TO FIND BORDER IN FORWARD DIRECTION
+        int borderY = detector.findBorder(out, IMAGE_HALF_WIDTH);
+
+        /// TESTS
+        // Draw goal line for testing
         if (goalCenter.x && goalCenter.y) {
             line(image, Point(goalCenter.x, 0), Point(goalCenter.x, IMAGE_HEIGHT), Scalar(0, 0, 255), 1);
             line(image, Point(0, goalCenter.y), Point(IMAGE_WIDTH, goalCenter.y), Scalar(0, 0, 255), 1);
-
-            // Remove balls beyond goal
-            for (int i = 0; i < initialBalls.size(); ++i) {
-                if (initialBalls[i].center.y > goalCenter.y) {
-                    balls.push_back(initialBalls[i]);
-                }
-            }
-        } else {
-            balls = initialBalls;
         }
-         */
 
-
-
-        // Test
+        // Draw center line for testing
         line(image, Point(IMAGE_HALF_WIDTH, 0), Point(IMAGE_HALF_WIDTH, IMAGE_HEIGHT), Scalar(255, 0, 255), 1);
 
+        // Draw border line for testing
+        if (borderY != -1) {
+            line(image, Point(0, borderY), Point(IMAGE_WIDTH, borderY), Scalar(0, 0, 0));
+        }
+
+        // Draw balls for testing
         for (int i = 0; i < balls.size(); ++i) {
-            putText(image, itos((int) round(balls[i].distance.x)), Point(balls[i].center.x + 20, balls[i].center.y), 1, 1, Scalar(0, 0, 255));
+            putText(image, itos((int) round(balls[i].distance.y)), Point(balls[i].center.x + 20, balls[i].center.y), 1, 1, Scalar(0, 0, 255));
             circle(image, balls[i].center, 20, Scalar(0, 0, 255));
         }
-
-        /*
-#pragma omp parallel for
-        for (int y = 0; y < IMAGE_HEIGHT; ++y) {
-            for (int x = 0; x < IMAGE_WIDTH; ++x) {
-                Vec3b pixel = workedImage.at<Vec3b>(y, x);
-                string closestColor = "WHITE";
-                float minDifference = 3;
-                for (auto &color : colorMap) {
-                    float difference =
-                            pow((float) (pixel[0] - color.second[0]) / 180, 2) +
-                            pow((float) (pixel[1] - color.second[1]) / 255, 2) +
-                            pow((float) (pixel[2] - color.second[2]) / 255, 2);
-
-                    if (difference < minDifference) {
-                        minDifference = difference;
-                        closestColor = color.first;
-                    }
-                }
-
-                image.at<Vec3b>(y, x) = colorMap[closestColor];
-            }
-        }
-         */
-
-        /*
-        /// FIND BALLS
-        vector<Detector::Ball> balls = detector.findBalls(workedImage);
-
-        /// FIND GOALS
-        //vector<vector<Point> > contours = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
-        Point goalCenter = detector.findGoal(workedImage, configuration.GetValue("settings", "GOAL_COLOR", NULL));
-         */
 
         /// REFEREE COMMANDS
         string refereeCommand = srf.getRefereeCommand();
@@ -625,15 +494,15 @@ int main() {
         gettimeofday(&tp, NULL);
         long int time = tp.tv_sec * 1000 + tp.tv_usec / 1000;
         string command = ai.getCommand((int) (time - startTime));
-        Scalar white = Scalar(255, 255, 255);
-        putText(image, itos((int) (time - startTime)), Point(20, 20), 1, 1, white);
+        putText(image, itos((int) (time - startTime)), Point(20, 20), 1, 1, Scalar(0, 255, 255));
         startTime = time;
 
         if (command.length())
         {
             //communicator.sendCommand("red");
             communicator.sendCommand(command);
-            // cout << command << endl;
+            //cout << command << endl;
+            //cout << communicator.isBallCaptured() << endl;
         }
 
         //cvtColor(workedImage, workedImage, COLOR_HSV2BGR);

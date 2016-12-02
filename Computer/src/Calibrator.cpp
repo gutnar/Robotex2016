@@ -118,7 +118,7 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
         while (1)
         {
             cap >> mCalibrationSrc;
-            line(mCalibrationSrc, Point(IMAGE_HALF_WIDTH, 0), Point(IMAGE_HALF_WIDTH, IMAGE_HEIGHT), Scalar(255, 0, 255), 1);
+            //line(mCalibrationSrc, Point(IMAGE_HALF_WIDTH, 0), Point(IMAGE_HALF_WIDTH, IMAGE_HEIGHT), Scalar(255, 0, 255), 1);
             imshow(mWindowName, mCalibrationSrc);
 
             if (waitKey(30) > 0)
@@ -213,8 +213,11 @@ void Calibrator::calibrateColor(VideoCapture cap, CSimpleIniA *ini, string color
         int mean = sum / pixels;
         int deviation = (int) sqrt(sqSum / pixels - mean * mean);
 
-        // Set min and max HSV values to filter on image
+        // Set min and max HSV values to filter on imag
         range[i][0] = mean - deviation*2;
+        if (range[i][0] < 0) {
+            range[i][0] = 0;
+        }
         range[i][1] = mean + deviation*2;
     }
 

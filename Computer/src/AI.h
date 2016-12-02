@@ -14,17 +14,19 @@ class AI
 {
 public:
     AI();
+    AI(Detector& detector);
 
     void notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured, Point goalCenter);
 
     string getCommand(int dt);
-
+    string getSpeedCommand(float v, float angle);
 private:
     vector<Detector::Ball> mBalls;
     bool mBallCaptured;
     bool mGameIsOn;
     Point mGoalCenter;
 
+    Detector* mDetector;
     Detector::Ball *getClosestBall();
 
     // State
@@ -36,14 +38,16 @@ private:
     int mState = IDLE_STATE;
 
     // Target ball
-    Detector::Ball *mTargetBall;
+    Detector::Ball mTargetBall;
 
     // PID
     float mIntegral;
     float mPreviousError;
 
-    PID mTurnPid;
-    PID mForwardPid;
+    PID mTurnPid = PID(4, 0.4, 0.4);
+    PID mForwardPid = PID(0.5, 0.05, 0);
+    PID mThirdWheelTurnPid;// = PID(0.2, 0.01, 0.05);
+    //PID mSidewaysPid = PID();
 
     // Has the dribbler been stopped and has the kick command been sent during a shoot state
     bool mDribblerStopped;

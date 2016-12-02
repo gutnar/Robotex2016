@@ -30,8 +30,8 @@ public:
     void filterColor(Mat &srcImage, Mat &dstImage, string color);
     Point findGoal(Mat &srcImage, string color);
     vector<Ball> findBalls(Mat &srcImage);
-    bool isBallWithinBorders(Mat &srcImage, Detector::Ball ball);
-    int findBorder(Mat &srcImage, int x);
+    bool isBallWithinBorders(int out[IMAGE_PIXELS], Detector::Ball ball);
+    int findBorder(int out[IMAGE_PIXELS], int x);
 
     void onMouse(int event, int x, int y);
     static void mouseEventHandler(int event, int x, int y, int, void* userdata);
