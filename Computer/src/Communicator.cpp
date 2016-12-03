@@ -65,6 +65,7 @@ bool Communicator::isBallCaptured() {
     if (captured != mBallCaptured) {
         if (++mBallCapturedChangedFrames == 10) {
             mBallCaptured = captured;
+            mBallCapturedChangedFrames = 0;
         }
     } else {
         mBallCapturedChangedFrames = 0;

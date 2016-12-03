@@ -84,8 +84,8 @@ __kernel void mark_pixels(__global const int* in, __global int* out) {
 
     // Light color
     if (v >= 175) {
-        // Most likely yellow or orange
-        if (h < 100) {
+        // Most likely yellow or orange (WAS 100 BEFORE)
+        if (h < 30 && s > 100) {
             out[i] = 5; // orange = 5
         }
 

@@ -331,16 +331,15 @@ int main() {
 
         /// FIND BALLS AND GOALS
         vector<Detector::Ball> initialBalls;
-        Point goalCenter;
-        int largestGoalSurface = 1500;
+
+        Point ownGoalCenter;
+        Point opponentGoalCenter;
+
+        int largestOwnGoalSurface = 1500;
+        int largestOpponentGoalSurface = 1500;
+        int opponentGoalWidth;
 
         for (int i = 0; i < blobs.size(); ++i) {
-            /*
-            if (blobs[i].mMinY > IMAGE_HEIGHT/2 && blobs[i].mSurface < 50){
-                blobs[i].mHidden = true;
-            }
-             */
-
             if (blobs[i].mHidden) {
                 continue;
             }
@@ -371,6 +370,7 @@ int main() {
 
             // Check if blob is a ball
             if (blobs[i].mColor == 5 && size.x >= 1 && size.x <= 10 && size.y > 1 && size.y < 100) {
+                /*
                 int greenNeighbours = 0;
 
                 for (int j = 1; j < 2; ++j) {
@@ -390,36 +390,53 @@ int main() {
                         ++greenNeighbours;
                     }
                 }
+                 */
 
-                if (greenNeighbours > 1) {
+                //if (greenNeighbours > 1) {
                     Detector::Ball ball;
                     ball.center = center;
                     ball.distance = detector.getDistance(Point(center.x, blobs[i].mMaxY));
                     initialBalls.push_back(ball);
                     //continue;
-                }
+                //}
             }
 
             // Check if blob is a goal
-            else if (blobs[i].mColor == opponentGoalColor && h > 25 && h < 200 && size.x > 10 && A > largestGoalSurface) {
-                // It is probably not the goal and the blob is a robot if own goal color is directly above or below
-                int ownColorNeighbours = 0;
+            else if ((blobs[i].mColor == opponentGoalColor || blobs[i].mColor == ownGoalColor) && h > 20 && h < 200 && size.x > 10) {
+                // Check size
+                if (blobs[i].mColor == opponentGoalColor && A < largestOpponentGoalSurface) {
+                    continue;
+                }
+
+                if (blobs[i].mColor == ownGoalColor && A < largestOwnGoalSurface) {
+                    continue;
+                }
+
+                // It is probably not the goal and the blob is a robot if other goal color is directly above or below
+                int otherColorNeighbours = 0;
 
                 for (int j = 0; j < (blobs[i].mMaxX - center.y + 5); ++j) {
                     if (out[(center.y - j) * IMAGE_WIDTH + center.x] == ownGoalColor) {
-                        ++ownColorNeighbours;
+                        ++otherColorNeighbours;
                     }
 
                     if (out[(center.y + j) * IMAGE_WIDTH + center.x] == ownGoalColor) {
-                        ++ownColorNeighbours;
+                        ++otherColorNeighbours;
                     }
                 }
 
-                if (ownColorNeighbours < (blobs[i].mMaxX - center.y)/2) {
+                if (otherColorNeighbours < (blobs[i].mMaxX - center.y)/2) {
                     // Mark as current goal
-                    largestGoalSurface = A;
+                    if (blobs[i].mColor == ownGoalColor) {
+                        largestOwnGoalSurface = A;
+                        ownGoalCenter = Point(center.x, blobs[i].mMaxY);
+                    } else {
+                        largestOpponentGoalSurface = A;
+                        opponentGoalCenter = Point(center.x, blobs[i].mMaxY);
+                        opponentGoalWidth = size.x;
+                    }
+
                     putText(image, itos(A) + " " + itos(h), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 0));
-                    goalCenter = center;//Point(center.x, blobs[i].mMaxY);
 
                     line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
                          Scalar(0, 0, 0));
@@ -437,7 +454,18 @@ int main() {
             // Unknown
             else {
                 //continue;
-                putText(image, itos(size.y), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 0));
+                putText(image, itos(h), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 0));
+
+                /*
+                line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
+                     Scalar(0, 0, 0));
+                line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                     Scalar(0, 0, 0));
+                line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMinX, blobs[i].mMaxY),
+                     Scalar(0, 0, 0));
+                line(image, Point(blobs[i].mMaxX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                     Scalar(0, 0, 0));
+                     */
             }
         }
 
@@ -459,9 +487,9 @@ int main() {
 
         /// TESTS
         // Draw goal line for testing
-        if (goalCenter.x && goalCenter.y) {
-            line(image, Point(goalCenter.x, 0), Point(goalCenter.x, IMAGE_HEIGHT), Scalar(0, 0, 255), 1);
-            line(image, Point(0, goalCenter.y), Point(IMAGE_WIDTH, goalCenter.y), Scalar(0, 0, 255), 1);
+        if (opponentGoalCenter.x && opponentGoalCenter.y) {
+            line(image, Point(opponentGoalCenter.x, 0), Point(opponentGoalCenter.x, IMAGE_HEIGHT), Scalar(0, 0, 255), 1);
+            line(image, Point(0, opponentGoalCenter.y), Point(IMAGE_WIDTH, opponentGoalCenter.y), Scalar(0, 0, 255), 1);
         }
 
         // Draw center line for testing
@@ -488,7 +516,7 @@ int main() {
         }
 
         /// NOTIFY AI OF CURRENT STATE
-        ai.notify(gameIsOn, balls, communicator.isBallCaptured(), goalCenter);
+        ai.notify(gameIsOn, balls, communicator.isBallCaptured(), opponentGoalCenter, ownGoalCenter, opponentGoalWidth);
 
         /// ASK AI WHAT TO DO
         gettimeofday(&tp, NULL);

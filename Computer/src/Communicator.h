@@ -27,7 +27,7 @@ private:
     string lastCommand = "";
     char mInfraredBuf[3];
     bool mBallCaptured;
-    int mBallCapturedChangedFrames;
+    int mBallCapturedChangedFrames = 9;
     struct sp_port ** mPorts;
     sp_port * mPort;
     char mFieldId;

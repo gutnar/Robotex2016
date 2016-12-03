@@ -7,19 +7,35 @@
 AI::AI() {
 }
 
-AI::AI(Detector& detector) {
+AI::AI(Detector &detector) {
     mDetector = &detector;
 }
 
-void AI::notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured, Point goalCenter) {
+void AI::notify(bool gameIsOn, vector<Detector::Ball> &balls, bool ballCaptured, Point opponentGoalCenter,
+                Point ownGoalCenter, int opponentGoalWidth) {
     mGameIsOn = gameIsOn;
     mBalls = balls;
     mBallCaptured = ballCaptured;
-    mGoalCenter = goalCenter;
 
-    if (goalCenter.x != 0 && goalCenter.y != 0) {
-        mGoalWasLeft = goalCenter.x < IMAGE_HALF_WIDTH;
+    mOwnGoalCenter = ownGoalCenter;
+    mOpponentGoalCenter = opponentGoalCenter;
+
+    // Can see opponent goal
+    if (opponentGoalCenter.x != 0 && opponentGoalCenter.y != 0) {
+        mOpponentGoalIsLeft = opponentGoalCenter.x < IMAGE_HALF_WIDTH;
+        mOpponentGoalWasLeft = mOpponentGoalIsLeft;
     }
+
+    // Can see own goal
+    else if (ownGoalCenter.x != 0 && ownGoalCenter.y != 0) {
+        if (mOpponentGoalWasLeft == ownGoalCenter.x < IMAGE_HALF_WIDTH) {
+            mOpponentGoalIsLeft = !mOpponentGoalWasLeft;
+        } else {
+            mOpponentGoalIsLeft = mOpponentGoalWasLeft;
+        }
+    }
+
+    mOpponentGoalWidth = opponentGoalWidth;
 }
 
 Detector::Ball *AI::getClosestBall() {
@@ -58,6 +74,7 @@ string AI::getCommand(int dt) {
         case CHOOSE_BALL_STATE:
             // A ball is already captured
             if (mBallCaptured) {
+                mTimer = 0;
                 mState = FIND_GOAL_STATE;
                 return "d150";
             }
@@ -75,27 +92,28 @@ string AI::getCommand(int dt) {
         case FIND_BALLS_STATE:
             // A ball is already captured
             if (mBallCaptured) {
+                mTimer = 0;
                 mState = FIND_GOAL_STATE;
                 return "d150";
             }
 
             // Back to finding balls if no balls are on the screen
-            mDribblerRuntime += dt;
+            mTimer += dt;
 
-            if (mDribblerRuntime > 5000) {
-                mDribblerRuntime = 0;
+            if (mTimer > 5000) {
+                mTimer = 0;
                 mState = MOVE_TOWARDS_GOAL_STATE;
             }
 
             if (mBalls.size()) {
-                mDribblerRuntime = 0;
+                mTimer = 0;
                 mState = GET_BALL_STATE;
             } else {
                 return "sd25:25:25:0";
             }
             break;
         case SHOOT_STATE:
-            mDribblerRuntime += dt;
+            mTimer += dt;
 
             if (!mKicked && mBallCaptured) {
                 mKicked = true;
@@ -103,8 +121,8 @@ string AI::getCommand(int dt) {
                 return "k1250\nsd0\nd0";
             }
 
-            if (mDribblerRuntime > 1000) {
-                mDribblerRuntime = 0;
+            if (mTimer > 1000) {
+                mTimer = 0;
                 mState = CHOOSE_BALL_STATE;
             }
 
@@ -115,11 +133,12 @@ string AI::getCommand(int dt) {
             if (mBallCaptured) {
                 mForwardPid.reset();
                 mTurnPid.reset();
+                mTimer = 0;
                 mState = FIND_GOAL_STATE;
                 return "d150";
             }
 
-            // Back to finding balls if no balls are on the screen
+                // Back to finding balls if no balls are on the screen
             else if (mBalls.size() == 0) {
                 mForwardPid.reset();
                 mTurnPid.reset();
@@ -146,7 +165,7 @@ string AI::getCommand(int dt) {
 
                 // Distance to ball
                 float distance = sqrt(pow(ball->distance.x, 2) + pow(ball->distance.y, 2));
-                float angle = atan(ball->distance.x/(ball->distance.y + ROBOT_RADIUS));
+                float angle = atan(ball->distance.x / (ball->distance.y + ROBOT_RADIUS));
 
                 // PID
                 float forwardSpeed = mForwardPid.tick(dt, distance);
@@ -159,7 +178,13 @@ string AI::getCommand(int dt) {
                     forwardSpeed = 75;
                 }
 
-                cout << forwardSpeed << endl;
+                //cout << forwardSpeed << endl;
+
+                /*
+                if (ball->distance.y <= 20 && forwardSpeed > 10) {
+                    forwardSpeed = 10;
+                }
+                 */
 
                 // Forward
                 float v0 = forwardSpeed * cos(WHEEL_0);// - angle);
@@ -180,7 +205,7 @@ string AI::getCommand(int dt) {
                 if (ball->distance.y < 30) {
                     command += "\nd150";
 
-                    if (v2 < 1 && ball->distance.y <= 10) {
+                    if (v2 < 1 && ball->distance.y <= 10 && ball->distance.x <= 2) {
                         mForwardPid.reset();
                         mTurnPid.reset();
                         mState = DRIBBLE_STATE;
@@ -195,12 +220,13 @@ string AI::getCommand(int dt) {
         case DRIBBLE_STATE:
             if (mBallCaptured) {
                 //return "sd0:0:0:0\nd0";
+                mTimer = 0;
                 mState = FIND_GOAL_STATE;
             } else {
-                mDribblerRuntime += dt;
+                mTimer += dt;
 
-                if (mDribblerRuntime > 2000) {
-                    mDribblerRuntime = 0;
+                if (mTimer > 2000) {
+                    mTimer = 0;
                     mState = CHOOSE_BALL_STATE;
                     return "d100";
                 }
@@ -212,28 +238,37 @@ string AI::getCommand(int dt) {
             if (!mBallCaptured) {
                 mTurnPid.reset();
                 mState = CHOOSE_BALL_STATE;
-            } else if (mGoalCenter.x == 0 && mGoalCenter.y == 0) {
-                mTurnPid.reset();
+                mGoodAngleFrames = 0;
+            } else if (mOpponentGoalCenter.x == 0 && mOpponentGoalCenter.y == 0) {
+                mTurnPid.tick(dt, 3.1419/2);
+                mGoodAngleFrames = 0;
+                mTimer = 0;
 
-                if (mGoalWasLeft) {
-                    return "sd-6:-6:-30:0";
-                    //return "sd-10:-10:-10:0";
+                if (mOpponentGoalIsLeft) {
+                    return "sd-14:-14:-70:0";
                 } else {
-                    //return "sd10:10:10:0";
-                    return "sd6:6:30:0";
+                    return "sd14:14:70:0";
                 }
+            }
+
+            // Check if shooting angle is fine
+            else if (mOpponentGoalWidth <= 25 && abs(mOpponentGoalCenter.x - IMAGE_HALF_WIDTH) < 200) {
+                mTurnPid.reset();
+                mTimer = 0;
+                mGoodAngleFrames = 0;
+                mState = FIND_BETTER_SHOOTING_ANGLE_STATE;
             } else {
                 // Get distance to goal
-                FloatPoint distance = mDetector->getDistance(mGoalCenter);
+                FloatPoint distance = mDetector->getDistance(mOpponentGoalCenter);
 
                 // PID
                 float angle = atan(distance.x / (distance.y + ROBOT_RADIUS));
-                //float angle = abs(mGoalCenter.x - IMAGE_HALF_WIDTH);
+                //float angle = abs(mOpponentGoalCenter.x - IMAGE_HALF_WIDTH);
                 float speed = mTurnPid.tick(dt, angle) * ROBOT_RADIUS;
 
-                if (speed > 0 && mGoalCenter.x < IMAGE_HALF_WIDTH) {
+                if (speed > 0 && mOpponentGoalCenter.x < IMAGE_HALF_WIDTH) {
                     speed *= -1;
-                } else if (speed < 0 && mGoalCenter.x > IMAGE_HALF_WIDTH) {
+                } else if (speed < 0 && mOpponentGoalCenter.x > IMAGE_HALF_WIDTH) {
                     speed *= -1;
                 }
 
@@ -243,12 +278,84 @@ string AI::getCommand(int dt) {
                     speed = -30;
                 }
 
-                //cout << angle/3.1419*180.0 << " " << speed << endl;
+                // Check if shooting angle is good
+                if (abs(angle) < 5.0 / 180.0 * 3.1419) {
+                    mGoodAngleFrames++;
+                } else {
+                    mGoodAngleFrames = 0;
+                }
+
+                // Start timer when third wheel is slow
+                if (speed < 10 && mTimer > 0) {
+                    mTimer += dt;
+                }
 
                 // 10 degrees in radians
-                if (abs(angle) < 10/180.0*3.1419) {
+                if (speed < 10 && (mGoodAngleFrames > 5 || mTimer > 2000)) {
+                //if (speed < 10 && abs(distance.x) < mOpponentGoalWidth/4) {
                     mTurnPid.reset();
-                    mDribblerRuntime = 0;
+                    mTimer = 0;
+                    mDribblerStopped = false;
+                    mKicked = false;
+                    mState = SHOOT_STATE;
+                    mGoodAngleFrames = 0;
+
+                    return "sd0";
+                } else {
+                    return "sd" + itos(speed / 5) + ":" + itos(speed / 5) + ":" + itos(speed) + ":0";
+                }
+            }
+        case FIND_BETTER_SHOOTING_ANGLE_STATE:
+            if (!mBallCaptured) {
+                //mTurnPid.reset();
+                mState = CHOOSE_BALL_STATE;
+            } else if (mTimer > 0) {
+                mTimer += dt;
+
+                if (mTimer < 1500) {
+                    return "sd-30:30:0:0";
+                } else {
+                    //mTurnPid.reset();
+                    mTimer = 0;
+                    mState = FIND_GOAL_STATE;
+                }
+            } else if (mOwnGoalCenter.x == 0 && mOwnGoalCenter.y == 0) {
+                mTurnPid.reset();
+
+                if (mOpponentGoalIsLeft) {
+                    return "sd6:6:30:0";
+                } else {
+                    return "sd-6:-6:-30:0";
+                }
+            } else {
+                mTimer = dt;
+            }
+
+                /*
+                // Get distance to goal
+                FloatPoint distance = mDetector->getDistance(mOpponentGoalCenter);
+
+                // PID
+                float angle = atan(distance.x / (distance.y + ROBOT_RADIUS));
+                //float angle = abs(mOpponentGoalCenter.x - IMAGE_HALF_WIDTH);
+                float speed = mTurnPid.tick(dt, angle) * ROBOT_RADIUS;
+
+                if (speed > 0 && mOpponentGoalCenter.x < IMAGE_HALF_WIDTH) {
+                    speed *= -1;
+                } else if (speed < 0 && mOpponentGoalCenter.x > IMAGE_HALF_WIDTH) {
+                    speed *= -1;
+                }
+
+                if (speed > 30) {
+                    speed = 30;
+                } else if (speed < -30) {
+                    speed = -30;
+                }
+
+                // 10 degrees in radians
+                if (abs(angle) < 5.0 / 180.0 * 3.1419) {
+                    mTurnPid.reset();
+                    mTimer = 0;
                     mDribblerStopped = false;
                     mKicked = false;
                     mState = SHOOT_STATE;
@@ -257,13 +364,14 @@ string AI::getCommand(int dt) {
                 } else {
                     return "sd" + itos(speed / 5) + ":" + itos(speed / 5) + ":" + itos(speed) + ":0";
                 }
-            }
+                */
+            break;
         // UNFINISHED, CURRENTLY NOT IN USE
         case MOVE_TOWARDS_GOAL_STATE:
-            if (mGoalCenter.x == 0 && mGoalCenter.y == 0) {
+            if (mOpponentGoalCenter.x == 0 && mOpponentGoalCenter.y == 0) {
                 mIntegral = 0;
 
-                if (mGoalWasLeft) {
+                if (mOpponentGoalIsLeft) {
                     return "sd-10:-10:-10:0";
                 } else {
                     return "sd10:10:10:0";
@@ -271,7 +379,7 @@ string AI::getCommand(int dt) {
             }
 
             // pid
-            double angle = abs(mGoalCenter.x - IMAGE_HALF_WIDTH);//180/3.14159*atan(mGoalCenter.x/mGoalCenter.y);
+            double angle = abs(mOpponentGoalCenter.x - IMAGE_HALF_WIDTH);//180/3.14159*atan(mOpponentGoalCenter.x/mOpponentGoalCenter.y);
             mIntegral += angle * dt;
             float derivative = (angle - mPreviousError) / dt;
             float output = (0.05 * angle + 0.20 * angle + 0.05 * derivative) / 5;
@@ -283,20 +391,20 @@ string AI::getCommand(int dt) {
             }
              */
 
-            if (mGoalCenter.x < IMAGE_HALF_WIDTH && output > 0) {
+            if (mOpponentGoalCenter.x < IMAGE_HALF_WIDTH && output > 0) {
                 output *= -1;
-            } else if (mGoalCenter.x > IMAGE_HALF_WIDTH && output < 0) {
+            } else if (mOpponentGoalCenter.x > IMAGE_HALF_WIDTH && output < 0) {
                 output *= -1;
             }
 
-            if (!mDribblerRuntime && angle > 250) {
+            if (!mTimer && angle > 250) {
                 return "sd" + itos(output) + ":" + itos(output) + ":" + itos(output) + ":0";
             }
 
-            mDribblerRuntime += dt;
+            mTimer += dt;
 
-            if (mDribblerRuntime > 2000) {
-                mDribblerRuntime = 0;
+            if (mTimer > 2000) {
+                mTimer = 0;
                 mState = FIND_BALLS_STATE;
             } else {
                 return "sd-25:25:0:0";
