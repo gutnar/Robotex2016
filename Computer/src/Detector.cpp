@@ -280,7 +280,7 @@ int Detector::findBorder(int out[IMAGE_PIXELS], int x) {
             sequentialOtherPixels = 0;
         } else {
             if (sequentialWhitePixels > 2 && sequentialBlackPixels > 2) {
-                return y + sequentialBlackPixels + sequentialWhitePixels + sequentialOtherPixels;
+                return y + sequentialWhitePixels;
             }
 
             if (++sequentialOtherPixels > 6) {
@@ -289,6 +289,71 @@ int Detector::findBorder(int out[IMAGE_PIXELS], int x) {
             }
         }
     }
+
+    return -1;
+}
+
+int Detector::findOuterEdge(int out[IMAGE_PIXELS], int x) {
+    int sequentialGreenPixels = 0;
+
+    for (int y = 0; y < IMAGE_HEIGHT; ++y) {
+        int color = out[y*IMAGE_WIDTH + x];
+
+        if (color == 4) {
+            sequentialGreenPixels++;
+
+            if (sequentialGreenPixels > 50) {
+                return y - sequentialGreenPixels;
+            }
+        } else {
+            sequentialGreenPixels = 0;
+        }
+    }
+
+    /*
+    int sequentialOutsidePixels = 0;
+    int sequentialGreenPixels = 0;
+    int sequentialOtherPixels = 0;
+
+    int sequentialOutsidePixels2 = 0;
+    int sequentialGreenPixels2 = 0;
+    int sequentialOtherPixels2 = 0;
+
+    for (int y = IMAGE_HEIGHT - 1; y >= 0; --y) {
+        int color = out[y*IMAGE_WIDTH + x];
+
+        if (color == 4) {
+            if (sequentialGreenPixels++ > 50) {
+                sequentialOtherPixels = 0;
+            }
+        } else {
+            sequentialOtherPixels++;
+
+            if (sequentialOtherPixels > 90 && sequentialGreenPixels > 50) {
+                return y + sequentialOtherPixels;
+            }
+        }
+        */
+
+        /*
+        if (color == 0 || color == 3) { // outside color (white/black)
+            sequentialOutsidePixels++;
+            sequentialGreenPixels = 0;
+            sequentialOtherPixels = 0;
+        } else if (color == 4) { // inside color (green)
+            sequentialGreenPixels++;
+            sequentialOtherPixels = 0;
+        } else {
+            if (sequentialOutsidePixels > 2 && sequentialGreenPixels > 2) {
+                return y + sequentialGreenPixels;
+            }
+
+            if (++sequentialOtherPixels > 10) {
+                sequentialOutsidePixels = 0;
+                sequentialGreenPixels = 0;
+            }
+        }
+         */
 
     return -1;
 }

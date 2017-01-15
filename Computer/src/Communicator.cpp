@@ -109,13 +109,21 @@ string Communicator::getRefereeCommand() {
 
         lastCommand = command;
 
+        //cout << command << endl;
+
         if (command == "START----") {
-            send("aABACK-----");
+            if (mBuf[(i+2)%12] == mRobotId) {
+                send("aABACK------");
+            }
+
             return "START";
         }
 
         if (command == "STOP-----") {
-            send("aABACK-----");
+            if (mBuf[(i+2)%12] == mRobotId) {
+                send("aABACK------");
+            }
+
             return "STOP";
         }
 

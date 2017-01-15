@@ -5,61 +5,7 @@ __kernel void ndrange_parallelism () {
     printf("%d\n", i*j);
 }
 
-/*
-[WHITE]
-H_MIN = 136
-H_MAX = 164
-S_MIN = 17
-S_MAX = 45
-V_MIN = 255
-V_MAX = 255
-
-[ORANGE]
-H_MIN = 0
-H_MAX = 16
-S_MIN = 128
-S_MAX = 288
-V_MIN = 220
-V_MAX = 288
-
-
-[YELLOW]
-H_MIN = 9
-H_MAX = 13
-S_MIN = 149
-S_MAX = 213
-V_MIN = 202
-V_MAX = 294
-
-
-[BLUE]
-H_MIN = 90
-H_MAX = 142
-S_MIN = 159
-S_MAX = 211
-V_MIN = 124
-V_MAX = 208
-
-
-[BLACK]
-H_MIN = 4
-H_MAX = 276
-S_MIN = 99
-S_MAX = 183
-V_MIN = 46
-V_MAX = 82
-
-
-[GREEN]
-H_MIN = 67
-H_MAX = 87
-S_MIN = 35
-S_MAX = 83
-V_MIN = 102
-V_MAX = 150
-*/
-
-__kernel void mark_pixels(__global const int* in, __global int* out) {
+__kernel void mark_pixels_physicum(__global const int* in, __global int* out) {
     int x = get_global_id(0);
     int y = get_global_id(1);
 
@@ -96,11 +42,18 @@ __kernel void mark_pixels(__global const int* in, __global int* out) {
     }
 
     // Most likely black, could be blue or green (ENNE OLI 50, GRETE TRENNI AJAL PANIN 70)
-    else if (v <= 70) {
-        if (v >= 40 && s >= 175) {
+    else if (v <= 100) {
+        /*
+        if (v >= 80 && s >= 175) {
             out[i] = 2; // blue = 2
         } else {
             out[i] = 3; // black = 3
+        }
+        */
+        if (h < 100) {
+            out[i] = 4;
+        } else {
+            out[i] = 3;
         }
     }
 
@@ -112,6 +65,56 @@ __kernel void mark_pixels(__global const int* in, __global int* out) {
     // Most likely green
     else {
         out[i] = 4;
+    }
+}
+
+__kernel void mark_pixels(__global const int* in, __global int* out) {
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    int i = y*640 + x;
+    int j = i*3;
+
+    // Glass
+    if (y > 430 && ((x > 75 && x < 200) || (x > 445 && x < 570))) {
+        out[i] = 4;
+        return;
+    }
+
+    // Dribbler
+    if (y > 450 && x >= 200 && x <= 445) {
+        out[i] = 4;
+        return;
+    }
+
+    int h = in[j + 0];
+    int s = in[j + 1];
+    int v = in[j + 2];
+
+    // Yellow or orange
+    if (h < 50 && s > 120 && v > 150) {
+        out[i] = 5;
+    }
+
+    // Blue
+        else if (h > 90 && h < 150 && s > 140) {
+            out[i] = 2;
+        }
+
+    // Green
+    else if (h < 100 && v < 200) {
+        out[i] = 4;
+    }
+
+
+    // White
+    else if (s < 150 && v > 100) {
+        out[i] = 0;
+    }
+
+    // Unknown
+    else {
+        out[i] = 3;
     }
 }
 

@@ -39,7 +39,7 @@ int main() {
         int productId = atoi(configuration.GetValue("srf", "PRODUCT_ID", "0"));
         srf.connect(vendorId, productId);
          */
-        srf.connect("/dev/ttyACM2");
+        srf.connect("/dev/ttyACM0");
     } catch (int exception) {
         cout << "Could not create serial RF connection!" << endl;
         //return 0;
@@ -54,7 +54,7 @@ int main() {
         int productId = atoi(configuration.GetValue("motherboard", "PRODUCT_ID", "0"));
         communicator.connect(vendorId, productId);
          */
-        communicator.connect("/dev/ttyACM0");
+        communicator.connect("/dev/ttyACM1");
     } catch (int exception) {
         cout << "Could not create serial connection to motherboard!" << endl;
         //return 0;
@@ -256,23 +256,33 @@ int main() {
         /// DETECT BLOBS OF SAME COLOR
         vector<Blob> blobs;
         vector<BlobLine> previousLines;
+        const int allowedOtherColors = 0;
 
         for (int y = 0; y < IMAGE_HEIGHT; ++y) {
             vector<BlobLine> currentLines;
 
             int lastColor = out[y*IMAGE_WIDTH];
             int beginColorIndex = 0;
+            int numberOfOtherColor = 0;
 
-            for (int x = 1; x < IMAGE_WIDTH + 1; ++x) {
+            // Go over right edge to mark line ends
+            for (int x = 1; x < IMAGE_WIDTH + 1 + allowedOtherColors; ++x) {
                 int i = y*IMAGE_WIDTH + x;
-                int currentColor = (x == IMAGE_WIDTH) ? -1 : out[i];
+                int currentColor = (x >= IMAGE_WIDTH) ? -1 : out[i];
 
                 if (lastColor != currentColor) {
-                    if ((lastColor == 1 || lastColor == 2 || lastColor == 5) && x - 1 - beginColorIndex > 1) {//} || out[i] == 2) {
+                    ++numberOfOtherColor;
+
+                    if (numberOfOtherColor < allowedOtherColors) {
+                        continue;
+                    }
+
+                    if ((lastColor == 1 || lastColor == 2 || lastColor == 5) && x - 1 - allowedOtherColors - beginColorIndex > 1) {
+                    //if ((lastColor == 2) && x - 1 - allowedOtherColors - beginColorIndex > 1) {
                         BlobLine line;
                         line.y = y;
                         line.xi = beginColorIndex;
-                        line.xf = x - 1;
+                        line.xf = x - 1 - allowedOtherColors;
                         line.color = lastColor;
                         line.blobIndex = -1;
 
@@ -282,17 +292,10 @@ int main() {
                                 continue;
                             }
 
-                            /*
-                            // Skip if lines do not touch
-                            if (previousLines[l].xi > line.xf || previousLines[l].xf < line.xi) {
-                                continue;
-                            }
-                             */
-
                             // Skip if touching is too small
                             int common = min(previousLines[l].xf, line.xf) - max(previousLines[l].xi, line.xi);
 
-                            if (common < 2) {
+                            if (common < 1) {
                                 continue;
                             }
 
@@ -301,9 +304,15 @@ int main() {
                                 line.blobIndex = previousLines[l].blobIndex;
                                 //cout << line.blobIndex << endl;
                             } else if (line.blobIndex != previousLines[l].blobIndex) {
-                                blobs[line.blobIndex].addBlob(blobs[previousLines[l].blobIndex]);
-                                blobs[previousLines[l].blobIndex].mHidden = true;
-                                previousLines[l].blobIndex = line.blobIndex;
+                                if (blobs[line.blobIndex].mSurface > blobs[previousLines[l].blobIndex].mSurface) {
+                                    blobs[line.blobIndex].addBlob(blobs[previousLines[l].blobIndex]);
+                                    blobs[previousLines[l].blobIndex].mHidden = true;
+                                    previousLines[l].blobIndex = line.blobIndex;
+                                } else {
+                                    blobs[previousLines[l].blobIndex].addBlob(blobs[line.blobIndex]);
+                                    blobs[line.blobIndex].mHidden = true;
+                                    line.blobIndex = previousLines[l].blobIndex;
+                                };
                             }
                         }
 
@@ -321,8 +330,13 @@ int main() {
                         currentLines.push_back(line);
                     }
 
+                    //x -= allowedOtherColors;
                     beginColorIndex = x;
-                    lastColor = currentColor;
+                    lastColor = out[y*IMAGE_WIDTH + x]; //currentColor;
+
+                    if (x >= IMAGE_WIDTH) {
+                        break;
+                    }
                 }
             }
 
@@ -343,6 +357,15 @@ int main() {
             if (blobs[i].mHidden) {
                 continue;
             }
+
+            line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
+                 Scalar(0, 0, 255));
+            line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                 Scalar(0, 0, 255));
+            line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMinX, blobs[i].mMaxY),
+                 Scalar(0, 0, 255));
+            line(image, Point(blobs[i].mMaxX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
+                 Scalar(0, 0, 255));
 
             // Blob parameters
             int w = blobs[i].getWidth();
@@ -436,16 +459,18 @@ int main() {
                         opponentGoalWidth = size.x;
                     }
 
-                    putText(image, itos(A) + " " + itos(h), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 0));
+                    putText(image, itos(A), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 255));
+
 
                     line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
-                         Scalar(0, 0, 0));
+                         Scalar(0, 0, 255), 3);
                     line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
-                         Scalar(0, 0, 0));
+                         Scalar(0, 0, 255), 3);
                     line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMinX, blobs[i].mMaxY),
-                         Scalar(0, 0, 0));
+                         Scalar(0, 0, 255), 3);
                     line(image, Point(blobs[i].mMaxX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
-                         Scalar(0, 0, 0));
+                         Scalar(0, 0, 255), 3);
+                         
 
                     //continue;
                 }
@@ -454,18 +479,7 @@ int main() {
             // Unknown
             else {
                 //continue;
-                putText(image, itos(h), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 0));
-
-                /*
-                line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMinY),
-                     Scalar(0, 0, 0));
-                line(image, Point(blobs[i].mMinX, blobs[i].mMaxY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
-                     Scalar(0, 0, 0));
-                line(image, Point(blobs[i].mMinX, blobs[i].mMinY), Point(blobs[i].mMinX, blobs[i].mMaxY),
-                     Scalar(0, 0, 0));
-                line(image, Point(blobs[i].mMaxX, blobs[i].mMinY), Point(blobs[i].mMaxX, blobs[i].mMaxY),
-                     Scalar(0, 0, 0));
-                     */
+                putText(image, itos(A), Point(center.x + 20, center.y), 1, 1, Scalar(0, 0, 0));
             }
         }
 
@@ -497,7 +511,7 @@ int main() {
 
         // Draw border line for testing
         if (borderY != -1) {
-            line(image, Point(0, borderY), Point(IMAGE_WIDTH, borderY), Scalar(0, 0, 0));
+            line(image, Point(0, borderY), Point(IMAGE_WIDTH, borderY), Scalar(0, 0, 255), 3);
         }
 
         // Draw balls for testing
@@ -538,8 +552,55 @@ int main() {
         imshow("test", image);
 
         // Close when pressing space or esc
-        if (waitKey(30) > 0) {
+        int key = waitKey(1);
+        float forwardSpeed = 0;
+        float rotateSpeed = 0;
+
+        if (key == 65362) {
+            forwardSpeed = 100;
+        } else if (key == 65364) {
+            forwardSpeed = -100;
+        }
+
+        if (key == 65363) {
+            rotateSpeed = 5;
+        } else if (key == 65361) {
+            rotateSpeed = -5;
+        }
+
+        cout << key << endl;
+
+        if (key == 32) {
+            communicator.sendCommand("k750");
+            continue;
+        }
+
+        if (key == 100) {
+            communicator.sendCommand("d150");
+        } else if (key == 102) {
+            communicator.sendCommand("d100");
+        }
+
+        if (key == 27) {
             break;
+        }
+
+
+        if (forwardSpeed || rotateSpeed) {
+            // Forward
+            float v0 = forwardSpeed * cos(WHEEL_0);// - angle);
+            float v1 = forwardSpeed * cos(WHEEL_1);// - angle);
+            float v2 = forwardSpeed * cos(WHEEL_2);// - angle);
+
+            // Rotation
+            //float rotateSpeed = mTurnPid.tick(dt, angle);
+
+            v0 += rotateSpeed * ROBOT_RADIUS;
+            v1 += rotateSpeed * ROBOT_RADIUS;
+            v2 += rotateSpeed * ROBOT_RADIUS;
+
+            // Speed command
+            communicator.sendCommand("sd" + itos(v0) + ":" + itos(v1) + ":" + itos(v2) + ":0");
         }
     }
 

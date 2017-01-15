@@ -45,28 +45,37 @@ private:
         DRIBBLE_STATE,
         FIND_GOAL_STATE,
         MOVE_TOWARDS_GOAL_STATE,
-        FIND_BETTER_SHOOTING_ANGLE_STATE
+        FIND_BETTER_SHOOTING_ANGLE_STATE,
+        BACK_UP_STATE,
+        MOVE_SIDEWAYS_STATE
     };
 
     int mState = IDLE_STATE;
 
     // Target ball
     Detector::Ball mTargetBall;
+    bool mTargetBallAvailable;
 
     // PID
     float mIntegral;
     float mPreviousError;
 
-    PID mTurnPid = PID(4, 0.4, 0.4);
-    PID mForwardPid = PID(0.5, 0.05, 0);
-    PID mThirdWheelTurnPid;// = PID(0.2, 0.01, 0.05);
+    PID mTurnPid = PID(3, 0.4, 0.4);
+    PID mForwardPid = PID(1.5, 0.05, 0);
+    PID mThirdWheelTurnPid;// = PID(0.2 , 0.01, 0.05);
 
     // Has the dribbler been stopped and has the kick command been sent during a shoot state
     bool mDribblerStopped;
     bool mKicked;
 
+    // Line is crossed
+    bool mLineIsCrossed;
+
     // How long has the dribbler been running
     int mTimer;
+
+    // How long since no ball has been dribbled
+    int mUselessTime;
 
     // How long has the aiming taken place
     int mAimTimer;
@@ -75,11 +84,17 @@ private:
     bool mOpponentGoalIsLeft;
     bool mOpponentGoalWasLeft;
 
+    //Where is the next closest ball last seen
+    bool mNextClosestBallIsLeft;
+
     // How large the opponent goal is currently on screen in centimeters
     int mOpponentGoalWidth;
 
-    // How many frames has the goal been in a good angle
+    // How many frames has the goal or target ball been in a good angle
     int mGoodAngleFrames;
+
+    // Which goal to move towards when being useless
+    bool mMoveTowardsOpponentGoal;
 };
 
 

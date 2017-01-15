@@ -32,6 +32,7 @@ public:
     vector<Ball> findBalls(Mat &srcImage);
     bool isBallWithinBorders(int out[IMAGE_PIXELS], Detector::Ball ball);
     int findBorder(int out[IMAGE_PIXELS], int x);
+    int findOuterEdge(int out[IMAGE_PIXELS], int x);
 
     void onMouse(int event, int x, int y);
     static void mouseEventHandler(int event, int x, int y, int, void* userdata);
